@@ -18,7 +18,12 @@
 
 ### Media Stack
 - Plex (no external port exposed via docker)
-- Sonarr → 8989
+- Sonarr
+    Port: 8989
+    Config path: /opt/docker/sonarr → /config
+    Media path: /mnt/data → /data
+    Storage type: bind mounts
+
 - Radarr → 7878
 - Prowlarr → 9696
 - NZBGet → 6789
@@ -26,17 +31,41 @@
 - Navidrome → 4533
 
 ### Personal
-- Firefly → 8090
-- MariaDB → internal (3306)
+- Firefly
+    Port: 8090
+    Upload storage: anonymous Docker volume
+    Risk: data location not clearly managed
 
+- MariaDB (Firefly DB)
+    Port: internal (3306)
+    Data: firefly_mariadb (named volume)
+    Storage type: named volume
 
+## On-Demand Containers
+The following services are intentionally stopped and only started when needed:
+- metube
+- pyload-ng
+- jellyfin
 
----
+These are preserved to retain configuration but are not part of the always-on stack.
 
-## Inactive / Broken Containers
-- metube → exited
-- pyload-ng → never started
-- jellyfin → unused
+## Docker Volumes
+
+### Named Volumes
+- dockhand_dockhand_data
+- firefly_firefly_iii_upload
+- firefly_mariadb_data
+- freshrss_freshrss_data
+- freshrss_freshrss_extensions
+
+### Anonymous Volumes
+- 6f703fbd3c1c597d...
+- 7c5c2dc20b6bbe2f...
+- a7df561a19228794...
+
+Note:
+Anonymous volumes exist and are not clearly mapped to services.
+These will need to be identified and migrated to named volumes during docker-compose refactor.
 
 ---
 
