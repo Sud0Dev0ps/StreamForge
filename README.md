@@ -1,7 +1,7 @@
 # StreamForge
 
 ## Overview
-StreamForge is a production-like DevOps homelab project designed to simulate realworld infrastructure and workflows.
+StreamForge is a production like DevOps homelab project designed to simulate realworld infrastructure and workflows.
 
 The goal is to transition from a traditional system administration background into a DevOps role by building, automating and operating a fully reproducible platform.
 
