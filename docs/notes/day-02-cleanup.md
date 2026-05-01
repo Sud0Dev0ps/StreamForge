@@ -15,11 +15,11 @@ Listed volumes:
 docker volume ls
 
 Observed:
-- mixture of named and anonymous volumes
-- some volumes tied to inactive containers
+mixture of named and anonymous volumes
+some volumes tied to inactive containers
 
 Decision:
-- do not delete volumes yet (to avoid data loss)
+do not delete volumes yet (to avoid data loss)
 
 ## Directory Structure
 Created initial project structure:
@@ -31,18 +31,18 @@ Created initial project structure:
 ## Existing Configuration
 Discovered existing service layout:
 /opt/docker/
-- each service stored in its own folder
-- each service contains its own docker-compose.yml
+each service stored in its own folder
+each service contains its own docker-compose.yml
 
 Assessment:
-- functional but not version controlled
-- inconsistent structure
-- not aligned with Infrastructure as Code practices
+functional but not version controlled
+inconsistent structure
+not aligned with Infrastructure as Code practices
 
 ## Key Decisions
-- Keep existing services running (no disruption)
-- Begin migrating configurations into Git managed structure
-- Avoid deleting anything critical until fully understood
+Keep existing services running (no disruption)
+Begin migrating configurations into Git managed structure
+Avoid deleting anything critical until fully understood
 
 ## Backup Strategy (Initial)
 Identified critical data to protect:
@@ -51,14 +51,14 @@ Identified critical data to protect:
 - Docker volumes (databases, uploads)
 
 Decision:
-- ensure backup coverage before major changes
+ensure backup coverage before major changes
 
 ## Observations
-- Environment contains legacy and unused services
-- Configurations are scattered
-- No single source of truth
+Environment contains legacy and unused services
+Configurations are scattered
+No single source of truth
 
 ## Outcome
-- Environment cleaned of unused containers/images
-- Initial structure created for project
-- Clear direction set for migration to reproducible setup
+Environment cleaned of unused containers/images
+Initial structure created for project
+Clear direction set for migration to reproducible setup

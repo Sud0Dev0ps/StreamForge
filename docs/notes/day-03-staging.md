@@ -3,8 +3,8 @@
 Create a clean staging environment to safely test changes before applying them to production
 
 ## Environment
-- Device: Ubuntu Laptop
-- Role: Staging / Development
+Device: Ubuntu Laptop
+Role: Staging / Development
 
 ## Docker Installation
 Attempted installation:
@@ -51,5 +51,5 @@ Independent from production system
 
 ## Next Step
 Begin:
-- Git repository structure
-- First service migration to clean docker-compose
+Git repository structure
+First service migration to clean docker-compose
