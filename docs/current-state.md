@@ -42,7 +42,7 @@
 * **Firefly**
   * Port: 8090
   * Upload storage: anonymous Docker volume
-  * ⚠️ Risk: data location not clearly managed
+  * Risk: data location not clearly managed
 
 * **MariaDB (Firefly DB)**
   * Port: internal (3306)
