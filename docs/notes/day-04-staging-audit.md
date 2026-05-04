@@ -145,5 +145,3 @@ Staging must be:
 Perform Docker cleanup
 Re-validate Docker state
 Transition to first service deployment (Sonarr)
-
----

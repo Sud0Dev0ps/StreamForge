@@ -152,12 +152,10 @@ Staging environment is:
 
 ---
 
-## 🚀 Next Step
+## Next Step
 **Day 6 — First Service Deployment (Sonarr)**
 
 Focus:
 * Build clean `docker-compose.yml`
 * Design proper volume structure
 * Validate in staging before production
-
----
