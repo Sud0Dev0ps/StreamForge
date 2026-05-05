@@ -1,4 +1,4 @@
-# Day 2 — Cleanup and Initial Structure
+# Session 2 — Cleanup and Initial Structure
 ## Goal
 Reduce clutter, remove unused resources and begin organising the environment for maintainability.
 

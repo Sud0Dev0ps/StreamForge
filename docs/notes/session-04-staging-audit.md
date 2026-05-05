@@ -1,4 +1,4 @@
-Day 4 — Staging Audit (Initial Baseline)
+Session 4 — Staging Audit (Initial Baseline)
 
 ## Objective
 Establish a clear, fully understood baseline of the staging environment before deploying any services.

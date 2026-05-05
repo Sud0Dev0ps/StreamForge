@@ -1,4 +1,4 @@
-# Day 7 — Shared Storage Architecture & Multi-Service Foundation
+# Session 7 — Shared Storage Architecture & Multi-Service Foundation
 
 ## Objective
 Standardise storage across services and extend the staging environment to support multiple applications (Sonarr + Radarr) using a consistent, production aligned design.

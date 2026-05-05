@@ -1,4 +1,4 @@
-# Day 3 — Staging Environment Setup
+# Session 3 — Staging Environment Setup
 ## Goal
 Create a clean staging environment to safely test changes before applying them to production
 

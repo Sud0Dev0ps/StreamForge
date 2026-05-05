@@ -1,4 +1,4 @@
-# Day 5 — Staging Cleanup & Baseline Validation
+# Session 5 — Staging Cleanup & Baseline Validation
 
 ## Objective
 Establish a fully clean, minimal, and reproducible staging environment before deploying any services.

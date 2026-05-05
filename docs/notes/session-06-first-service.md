@@ -1,4 +1,4 @@
-# Day 6 — First Service Deployment (Sonarr)
+# Session 6 — First Service Deployment (Sonarr)
 
 ## Objective
 Deploy the first application (Sonarr) in the staging environment using a clean, reproducible and production style Docker setup.

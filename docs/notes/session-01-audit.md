@@ -1,4 +1,4 @@
-# Day 1 — Production System Audit
+# Session 1 — Production System Audit
 
 ## Goal
 Establish a clear baseline of the current production environment before making any changes.
