@@ -1,3 +1,32 @@
+## [RISK] Production and staging on the same VLAN
+
+**Date identified:** 2025-05-05
+**Priority:** Medium
+**Status:** Accepted risk — to be resolved in networking phase
+
+### Problem
+Production and staging environments currently share the same VLAN.
+This means:
+- A misconfigured staging service could potentially reach production
+- No network-level isolation between environments
+- Does not reflect real world infrastructure best practices
+
+### Risk
+Low likelihood but high impact. 
+A mistake in staging could affect production services or data.
+
+### Mitigation until resolved
+- Be deliberate about which machine you are working on
+- Double check environment before making changes
+- Never test destructive operations on staging without verifying you are not connected to production resources
+
+### Resolution plan
+Implement VLAN separation via UniFi during the networking module.
+- Production VLAN: dedicated, restricted access
+- Staging VLAN: isolated from production
+
+----
+
 ## [30/4/2026] - Docker installation failed (containerd conflict)
 
 ### Context
