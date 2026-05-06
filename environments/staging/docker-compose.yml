@@ -12,6 +12,8 @@ services:
     ports:
       - ${SONARR_PORT}:8989
     restart: unless-stopped
+    networks:
+      - media_network
 networks:
   media_network:
     external: true
