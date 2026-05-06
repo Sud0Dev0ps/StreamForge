@@ -7,8 +7,8 @@ services:
       - PGID=${PGID}
       - TZ=${TZ}
     volumes:
-      - ${config_storage}:/config
-      - ${data_storage}:/data
+      - ${CONFIG_PATH}:/config
+      - ${DATA_PATH}:/data
     ports:
-      - ${sonarr_port}:8989
+      - ${SONARR_PORT}:8989
     restart: unless-stopped
