@@ -1,4 +1,20 @@
 services:
+  radarr:
+    image: lscr.io/linuxserver/radarr:latest
+    container_name: radarr
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${RADARR_CONFIG_PATH}:/config
+      - ${DATA_PATH}:/data
+    ports:
+      - ${RADARR_PORT}:7878
+    restart: unless-stopped
+    networks:
+      - media_network
+      
   sonarr:
     image: lscr.io/linuxserver/sonarr:latest
     container_name: sonarr
@@ -7,7 +23,7 @@ services:
       - PGID=${PGID}
       - TZ=${TZ}
     volumes:
-      - ${CONFIG_PATH}:/config
+      - ${SONARR_CONFIG_PATH}:/config
       - ${DATA_PATH}:/data
     ports:
       - ${SONARR_PORT}:8989
