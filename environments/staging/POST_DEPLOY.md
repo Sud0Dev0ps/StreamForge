@@ -9,6 +9,8 @@ After running `docker-compose up -d`, complete these steps through the Sonarr UI
 - Authentication: Forms (Login Page)
 - Username: [your choice]
 - Password: [your choice]
+- **Important:** Keep "Disable authentication for local addresses" UNCHECKED
+  - Provides extra depth of security even on trusted networks
 
 ### 2. Media Management
 - Settings → Media Management
@@ -24,5 +26,6 @@ After running `docker-compose up -d`, complete these steps through the Sonarr UI
 
 ## Verification
 - [ ] Can access UI at http://staging-ip:8989
-- [ ] Root folder `/data/media/tv` is configured
-- [ ] Authentication is set up (if enabled)
+- [ ] Authentication enabled and credentials stored securely
+- [ ] Root folder `/data/media/tv` is configured and writable
+- [ ] Ready for download client integration (pending NZBGet deployment)
