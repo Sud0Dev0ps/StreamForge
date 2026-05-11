@@ -1,4 +1,35 @@
 services:
+  nzbget:
+    image: lscr.io/linuxserver/nzbget:latest
+    container_name: nzbget
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${NZBGET_CONFIG_PATH}:/config
+      - ${NZBGET_DOWNLOADS}:/downloads
+    ports:
+      - ${NZBGET_PORT}:6789
+    restart: unless-stopped
+    networks:
+      - media_network
+
+  prowlarr:
+    image: lscr.io/linuxserver/prowlarr:latest
+    container_name: prowlarr
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${PROWLARR_CONFIG_PATH}:/config
+    ports:
+      - ${PROWLARR_PORT}:9696
+    restart: unless-stopped
+    networks:
+      - media_network
+
   radarr:
     image: lscr.io/linuxserver/radarr:latest
     container_name: radarr
@@ -30,6 +61,7 @@ services:
     restart: unless-stopped
     networks:
       - media_network
+      
 networks:
   media_network:
     external: true
