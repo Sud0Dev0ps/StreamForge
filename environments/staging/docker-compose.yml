@@ -1,6 +1,5 @@
 services:
-
-gluetun:
+  gluetun:
     image: qmcgaw/gluetun
     container_name: gluetun
     cap_add:
