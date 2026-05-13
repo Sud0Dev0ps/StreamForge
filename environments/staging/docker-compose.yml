@@ -1,4 +1,33 @@
 services:
+
+gluetun:
+    image: qmcgaw/gluetun
+    container_name: gluetun
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    ports:
+      - "${QBITTORRENT_PORT}:8080"
+      - "${QBITTORRENT_CONNECTION_PORT}:6881"
+      - "${QBITTORRENT_CONNECTION_PORT}:6881/udp"
+    environment:
+      - VPN_SERVICE_PROVIDER=custom
+      - VPN_TYPE=wireguard
+      - VPN_ENDPOINT_IP=${PROTONVPN_ENDPOINT_IP}
+      - VPN_ENDPOINT_PORT=${PROTONVPN_ENDPOINT_PORT}
+      - WIREGUARD_PUBLIC_KEY=${PROTONVPN_PUBLIC_KEY}
+      - WIREGUARD_PRIVATE_KEY=${PROTONVPN_PRIVATE_KEY}
+      - WIREGUARD_ADDRESSES=${PROTONVPN_ADDRESS}
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${GLUETUN_CONFIG_PATH}:/gluetun
+    networks:
+      - media_network
+    restart: unless-stopped
+
   nzbget:
     image: lscr.io/linuxserver/nzbget:latest
     container_name: nzbget
@@ -61,6 +90,22 @@ services:
     restart: unless-stopped
     networks:
       - media_network
+
+  qbittorrent:
+    image: lscr.io/linuxserver/qbittorrent:latest
+    container_name: qbittorrent
+    network_mode: "service:gluetun"
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - WEBUI_PORT=8080
+    volumes:
+      - ${QBITTORRENT_CONFIG_PATH}:/config
+      - ${QBITTORRENT_DOWNLOADS}:/downloads
+    depends_on:
+      - gluetun
+    restart: unless-stopped
       
 networks:
   media_network:
