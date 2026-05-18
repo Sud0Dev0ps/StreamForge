@@ -1,0 +1,19 @@
+services:
+  prowlarr:
+    image: lscr.io/linuxserver/prowlarr:latest
+    container_name: prowlarr
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${PROWLARR_CONFIG_PATH}:/config
+    ports:
+      - ${PROWLARR_PORT}:9696
+    restart: unless-stopped
+    networks:
+      - media_network_prod
+
+networks:
+  media_network_prod:
+    external: true
