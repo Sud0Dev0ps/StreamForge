@@ -6,6 +6,19 @@ Follow the configuration steps below, then use the verification checklist to con
 
 ## Configuration Steps
 
+### Radarr (Movies)
+**Access:** `http://production-ip:7878`
+
+#### Authentication (Recommended)
+- Navigate to: Settings → General → Security
+- Set Authentication to: **Forms (Login Page)**
+- Create username and password
+- **Important:** Keep "Disable authentication for local addresses" **UNCHECKED**
+
+#### Media Management
+- Navigate to: Settings → Media Management → Root Folders
+- Add Root Folder: `/data/media/movies`
+
 ### Prowlarr (Indexer Manager)
 **Access:** `http://production-ip:9696`
 
@@ -47,8 +60,20 @@ Follow the configuration steps below, then use the verification checklist to con
 - [ ] Indexers added and configured
 - [ ] Indexers successfully synced to both Sonarr and Radarr
 
+### Radarr
+- [ ] UI accessible at `http://production-ip:7878`
+- [ ] Authentication enabled (credentials stored securely)
+- [ ] Root folder `/data/media/movies` configured
+- [ ] NZBGet download client added and tested
+- [ ] qBittorrent download client added and tested
+- [ ] Remote path for NZBget mapping configured correctly
+- [ ] Remote path mapping qBittorrent configured correctly
+- [ ] Indexers synced from Prowlarr (visible in Settings → Indexers)
+- [ ] **End-to-end test:** Search for a movie → Download → Verify import to `/data/media/movies/`
+
 ---
 
 ## Network Architecture
 All services run on the `media_network_prod` Docker bridge network (`172.31.0.0/16`) and communicate using production server IP until all services are migrated:
-- `prowlarr` → `172.31.0.5`
+- `prowlarr` → `172.31.0.x`
+- `radarr` → `172.31.0.x`

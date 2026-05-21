@@ -1,4 +1,18 @@
 services:
+  prowlarr:
+    image: lscr.io/linuxserver/prowlarr:latest
+    container_name: prowlarr
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${PROWLARR_CONFIG_PATH}:/config
+    ports:
+      - ${PROWLARR_PORT}:9696
+    restart: unless-stopped
+    networks:
+      - media_network_prod
   radarr:
     image: lscr.io/linuxserver/radarr:latest
     container_name: radarr
@@ -15,17 +29,18 @@ services:
     networks:
       - media_network_prod
 
-  prowlarr:
-    image: lscr.io/linuxserver/prowlarr:latest
-    container_name: prowlarr
+  sonarr:
+    image: lscr.io/linuxserver/sonarr:latest
+    container_name: sonarr
     environment:
       - PUID=${PUID}
       - PGID=${PGID}
       - TZ=${TZ}
     volumes:
-      - ${PROWLARR_CONFIG_PATH}:/config
+      - ${SONARR_CONFIG_PATH}:/config
+      - ${DATA_PATH}:/data
     ports:
-      - ${PROWLARR_PORT}:9696
+      - ${SONARR_PORT}:8989
     restart: unless-stopped
     networks:
       - media_network_prod
