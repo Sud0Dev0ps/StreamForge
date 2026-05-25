@@ -52,6 +52,13 @@ Follow the configuration steps below, then use the verification checklist to con
 
 ## Verification Checklist
 
+### NZBGet
+- [ ] UI accessible at `http://staging-ip:6789`
+- [ ] Default password changed
+- [ ] News server(s) configured and tested
+- [ ] Categories `tv` and `movies` exist
+- [ ] Downloads completing to `path/to/downloads/usenet/completed/`
+
 ### Prowlarr
 - [ ] UI accessible at `http://production-ip:9696`
 - [ ] Authentication enabled (credentials stored securely)
