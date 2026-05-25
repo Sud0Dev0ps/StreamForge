@@ -71,9 +71,21 @@ Follow the configuration steps below, then use the verification checklist to con
 - [ ] Indexers synced from Prowlarr (visible in Settings → Indexers)
 - [ ] **End-to-end test:** Search for a movie → Download → Verify import to `/data/media/movies/`
 
+### Sonarr
+- [ ] UI accessible at `http://production-ip:8989`
+- [ ] Authentication enabled (credentials stored securely)
+- [ ] Root folder `/data/media/tv` configured
+- [ ] NZBGet download client added and tested
+- [ ] qBittorrent download client added and tested
+- [ ] Remote path for NZBget mapping configured correctly
+- [ ] Remote path mapping qBittorrent configured correctly
+- [ ] Indexers synced from Prowlarr (visible in Settings → Indexers)
+- [ ] **End-to-end test:** Search for a TV episode → Download → Verify import to `/data/media/tv/`
+
 ---
 
 ## Network Architecture
 All services run on the `media_network_prod` Docker bridge network (`172.31.0.0/16`) and communicate using production server IP until all services are migrated:
 - `prowlarr` → `172.31.0.x`
 - `radarr` → `172.31.0.x`
+- `sonarr` → `172.31.0.x`

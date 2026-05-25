@@ -1,4 +1,21 @@
 services:
+
+  nzbget:
+    image: lscr.io/linuxserver/nzbget:latest
+    container_name: nzbget
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${NZBGET_CONFIG_PATH}:/config
+      - ${DATA_PATH}:/data
+    ports:
+      - ${NZBGET_PORT}:6789
+    restart: unless-stopped
+    networks:
+      - media_network_prod
+
   prowlarr:
     image: lscr.io/linuxserver/prowlarr:latest
     container_name: prowlarr
@@ -13,6 +30,7 @@ services:
     restart: unless-stopped
     networks:
       - media_network_prod
+      
   radarr:
     image: lscr.io/linuxserver/radarr:latest
     container_name: radarr
