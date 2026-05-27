@@ -93,6 +93,7 @@ Follow the configuration steps below, then use the verification checklist to con
 
 ## Network Architecture
 All services run on the `media_network_prod` Docker bridge network (`172.31.0.0/16`) and communicate using production server IP until all services are migrated:
+- `navidrome` → `172.31.0.x`
 - `nzbget` → `172.31.0.x`
 - `seerr` → `172.31.0.x`
 - `radarr` → `172.31.0.x`
