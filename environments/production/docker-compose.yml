@@ -15,6 +15,19 @@ services:
     restart: unless-stopped
     networks:
       - media_network_prod
+  
+  navidrome:
+    image: deluan/navidrome:latest
+    container_name: navidrome
+    user: 1000:1000
+    ports:
+      - ${NAVIDROME_PORT}:4533
+    volumes:
+      - ${NAVIDROME_CONFIG_PATH}:/data
+      - ${NAVIDROME_MUSIC_PATH}:/music:ro
+    restart: unless-stopped
+    networks:
+      - media_network_prod
 
   nzbget:
     image: lscr.io/linuxserver/nzbget:latest
