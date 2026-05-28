@@ -1,6 +1,15 @@
-# StreamForge Post Deployment Configuration
-After running `docker compose up -d` 
-Follow the configuration steps below, then use the verification checklist to confirm everything is working.
+# StreamForge Media Stack — Post Deployment Configuration
+
+After running `docker compose up -d` from `environments/production/media/`, follow the configuration steps below, then use the verification checklist to confirm everything is working.
+
+---
+
+## Prerequisites
+
+- `media_network_prod` network created via `setup-network.sh`
+- `.env` file in place at `environments/production/media/.env`
+- All config folders present under `/opt/appdata/`
+- Homepage config files in place at `/opt/appdata/homepage/config/` (not Git-tracked — copy from backup or configure manually)
 
 ---
 
@@ -28,7 +37,6 @@ Follow the configuration steps below, then use the verification checklist to con
 - Create username and password
 
 #### Connect Applications
-- Navigate to: Settings → Apps → Add
 
 **For Sonarr:**
 - Prowlarr Server: `http://localhost:9696` (default)
@@ -48,16 +56,51 @@ Follow the configuration steps below, then use the verification checklist to con
 - Configure with your indexer API keys/credentials
 - Prowlarr will automatically sync these to Sonarr and Radarr
 
+### Homepage
+**Access:** `http://production-ip:3001`
+
+#### Config Files
+Homepage config files are **not Git-tracked** — they must be in place at `/opt/appdata/homepage/config/` before the container starts. Files required:
+- `services.yaml` — service links and integrations
+- `widgets.yaml` — dashboard widgets
+- `settings.yaml` — general settings
+- `bookmarks.yaml` — bookmarks
+- `docker.yaml` — Docker integration
+
+Copy from backup or configure manually on first run.
+
+#### HOMEPAGE_ALLOWED_HOSTS
+Ensure `HOMEPAGE_ALLOWED_HOSTS` in `.env` matches your production server IP and port exactly:
+HOMEPAGE_ALLOWED_HOSTS=192.168.x.x:3001
+
+### Navidrome (Music)
+**Access:** `http://production-ip:4533`
+
+#### First Run
+- Navigate to the UI and create your admin account on first access
+- Music library will begin scanning automatically from the configured music path
+- Scanning may take several minutes depending on library size
+
 ---
 
 ## Verification Checklist
 
+### Homepage
+- [ ] UI accessible at `http://production-ip:3001`
+- [ ] All service links loading correctly
+- [ ] Docker integration showing container statuses
+
+### Navidrome
+- [ ] UI accessible at `http://production-ip:4533`
+- [ ] Music library scan completed
+- [ ] Albums and artists visible
+
 ### NZBGet
-- [ ] UI accessible at `http://staging-ip:6789`
+- [ ] UI accessible at `http://production-ip:6789`
 - [ ] Default password changed
 - [ ] News server(s) configured and tested
 - [ ] Categories `tv` and `movies` exist
-- [ ] Downloads completing to `path/to/downloads/usenet/completed/`
+- [ ] Downloads completing to `/data/downloads/usenet/completed/`
 
 ### Prowlarr
 - [ ] UI accessible at `http://production-ip:9696`
@@ -72,10 +115,8 @@ Follow the configuration steps below, then use the verification checklist to con
 - [ ] Authentication enabled (credentials stored securely)
 - [ ] Root folder `/data/media/movies` configured
 - [ ] NZBGet download client added and tested
-- [ ] qBittorrent download client added and tested
-- [ ] Remote path for NZBget mapping configured correctly
-- [ ] Remote path mapping qBittorrent configured correctly
-- [ ] Indexers synced from Prowlarr (visible in Settings → Indexers)
+- [ ] Remote path mapping configured correctly
+- [ ] Indexers synced from Prowlarr
 - [ ] **End-to-end test:** Search for a movie → Download → Verify import to `/data/media/movies/`
 
 ### Sonarr
@@ -83,20 +124,40 @@ Follow the configuration steps below, then use the verification checklist to con
 - [ ] Authentication enabled (credentials stored securely)
 - [ ] Root folder `/data/media/tv` configured
 - [ ] NZBGet download client added and tested
-- [ ] qBittorrent download client added and tested
-- [ ] Remote path for NZBget mapping configured correctly
-- [ ] Remote path mapping qBittorrent configured correctly
-- [ ] Indexers synced from Prowlarr (visible in Settings → Indexers)
+- [ ] Remote path mapping configured correctly
+- [ ] Indexers synced from Prowlarr
 - [ ] **End-to-end test:** Search for a TV episode → Download → Verify import to `/data/media/tv/`
+
+### Seerr
+- [ ] UI accessible at `http://production-ip:5055`
+- [ ] Plex connected and tested
+- [ ] Sonarr connected and tested
+- [ ] Radarr connected and tested
 
 ---
 
 ## Network Architecture
-All services run on the `media_network_prod` Docker bridge network (`172.31.0.0/16`) and communicate using production server IP until all services are migrated:
-- `navidrome` → `172.31.0.x`
-- `nzbget` → `172.31.0.x`
-- `seerr` → `172.31.0.x`
-- `radarr` → `172.31.0.x`
-- `homepage` → `172.31.0.x`
-- `prowlarr` → `172.31.0.x`
-- `sonarr` → `172.31.0.x`
+
+All media services run on `media_network_prod` (172.31.0.0/16).
+
+| Service | Network |
+|---------|---------|
+| homepage | media_network_prod |
+| navidrome | media_network_prod |
+| prowlarr | media_network_prod |
+| radarr | media_network_prod |
+| sonarr | media_network_prod |
+| nzbget | media_network_prod |
+| seerr | media_network_prod |
+
+---
+
+## Rollback
+
+If a service fails to start, the old config is still available at `/opt/docker/<service>` until confirmed stable and removed.
+
+```bash
+docker compose down
+cd /opt/docker/<service>
+docker compose up -d
+```
