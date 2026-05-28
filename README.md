@@ -1,43 +1,82 @@
 # StreamForge
 
 ## Overview
-StreamForge is a production like DevOps homelab project designed to simulate realworld infrastructure and workflows.
 
-The goal is to transition from a traditional system administration background into a DevOps role by building, automating and operating a fully reproducible platform.
+StreamForge is a production-grade DevOps homelab project designed to simulate real-world infrastructure and workflows.
 
+The goal is to transition from a traditional system administration background into a DevOps role by building, automating and operating a fully reproducible platform using GitOps principles.
 
 ## Architecture
-- **Production**: Ubuntu Server (media stack + services)
-- **Staging/Dev**: Ubuntu Laptop
-- **Client**: MacBook (development + Git)
-- **Storage**: Synology NAS
-- **Networking**: UniFi (planned VLAN segmentation)
+
+| Component | Details |
+|-----------|---------|
+| Production | Lenovo Desktop, AMD Ryzen 5, 24GB RAM — Ubuntu Server |
+| Staging | Ubuntu Laptop |
+| Control Plane | MacBook (Git operations, code editing) |
+| Storage | Synology NAS (8.8TB, mounted at `/mnt/data`) |
+| Networking | UniFi (VLAN segmentation planned) |
+
+## Repository Structure
+
+StreamForge/
+├── environments/
+│   ├── staging/          # Staging environment
+│   └── production/
+│       ├── media/        # Media stack (Sonarr, Radarr, etc.)
+│       ├── infrastructure/  # Infrastructure tooling (Dockhand)
+│       └── home/         # Personal services (Firefly, MariaDB — planned)
+├── docs/
+└── README.md
 
 
 ## Tech Stack
+
+**Active**
 - Docker / Docker Compose
-- Ansible (planned)
-- Terraform (planned)
-- Kubernetes (K3s - planned)
-- GitHub Actions (planned)
-- Prometheus / Grafana / Loki (planned)
+- Git / GitHub (GitOps workflow)
 
+**Planned**
+- Ansible
+- Terraform
+- Kubernetes (K3s)
+- GitHub Actions
+- Prometheus / Grafana / Loki
 
-## Project Goals
-- Build a fully reproducible homelab environment
-- Implement Infrastructure as Code (IaC)
-- Create CI/CD pipelines
-- Migrate workloads to Kubernetes
-- Implement observability and monitoring
-- Demonstrate production-ready practices
+## Services
 
+### Media Stack (Production)
+| Service | Purpose | Status |
+|---------|---------|--------|
+| Sonarr | TV management | ✅ Migrated |
+| Radarr | Movie management | ✅ Migrated |
+| Prowlarr | Indexer management | ✅ Migrated |
+| NZBGet | Usenet downloader | ✅ Migrated |
+| Seerr | Request management | ✅ Migrated |
+| Homepage | Dashboard | ✅ Migrated |
+| Navidrome | Music streaming | ✅ Migrated |
+| MariaDB | Database | 🔄 Pending |
+| Firefly | Finance tracking | 🔄 Pending |
+| Plex | Media server | 🔄 Pending |
+
+### Infrastructure Stack (Production)
+| Service | Purpose | Status |
+|---------|---------|--------|
+| Dockhand | Docker management | ✅ Migrated |
 
 ## Current Status
 
-**Phase**: Week 1 — Foundations
+**Phase**: Production Migration — Phase 2 Complete
 
 - [x] System audit completed
-- [x] Git repository initialized
-- [x] Documentation baseline created
-- [x] Docker environment cleanup
-- [x] First service migrated to docker-compose
+- [x] Git repository initialised
+- [x] Staging environment fully GitOps
+- [x] Production network created (`media_network_prod`)
+- [x] Phase 1 complete — core media stack migrated (5 services)
+- [x] Phase 2 complete — Homepage, Navidrome, Dockhand migrated
+- [x] Repository restructured into media / infrastructure / home stacks
+- [ ] Phase 3 — MariaDB, Firefly (high risk)
+- [ ] Phase 4 — Plex (high risk)
+
+## GitOps Workflow
+MacBook (edit) → GitHub (source of truth) → Production Server (git pull)
+All infrastructure changes flow through Git. No manual edits on the server.
