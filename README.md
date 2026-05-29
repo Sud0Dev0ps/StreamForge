@@ -20,11 +20,12 @@ The goal is to transition from a traditional system administration background in
 
 StreamForge/
 ├── environments/
-│   ├── staging/          # Staging environment
+│   ├── staging/
 │   └── production/
-│       ├── media/        # Media stack (Sonarr, Radarr, etc.)
-│       ├── infrastructure/  # Infrastructure tooling (Dockhand)
-│       └── home/         # Personal services (Firefly, MariaDB — planned)
+│       ├── media/
+│       ├── infrastructure/
+│       ├── home/
+│       └── finance/        # Finance stack (Firefly, MariaDB)
 ├── docs/
 └── README.md
 
@@ -63,6 +64,12 @@ StreamForge/
 |---------|---------|--------|
 | Dockhand | Docker management | ✅ Migrated |
 
+### Finance Stack (Production)
+| Service | Purpose | Status |
+|---------|---------|--------|
+| MariaDB | Database | ✅ Migrated |
+| Firefly | Finance tracking | ✅ Migrated |
+
 ## Current Status
 
 **Phase**: Production Migration — Phase 2 Complete
@@ -74,8 +81,8 @@ StreamForge/
 - [x] Phase 1 complete — core media stack migrated (5 services)
 - [x] Phase 2 complete — Homepage, Navidrome, Dockhand migrated
 - [x] Repository restructured into media / infrastructure / home stacks
-- [ ] Phase 3 — MariaDB, Firefly (high risk)
-- [ ] Phase 4 — Plex (high risk)
+- [x] Phase 3 complete — MariaDB, Firefly migrated to finance stack
+- [ ] Phase 4 — Plex + Jellyfin migration (high risk)
 
 ## GitOps Workflow
 MacBook (edit) → GitHub (source of truth) → Production Server (git pull)
