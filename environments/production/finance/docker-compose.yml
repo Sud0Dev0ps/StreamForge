@@ -1,0 +1,39 @@
+services:
+  mariadb:
+    image: mariadb:latest
+    container_name: mariadb
+    restart: unless-stopped
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+    volumes:
+      - ${MARIADB_DATA_PATH}:/var/lib/mysql
+    networks:
+      - finance_network_prod
+
+  firefly:
+    image: fireflyiii/core:latest
+    container_name: firefly
+    restart: unless-stopped
+    depends_on:
+      - mariadb
+    environment:
+      - DB_CONNECTION=mysql
+      - DB_HOST=mariadb
+      - DB_PORT=3306
+      - DB_DATABASE=${MYSQL_DATABASE}
+      - DB_USERNAME=${MYSQL_USER}
+      - DB_PASSWORD=${MYSQL_PASSWORD}
+      - APP_KEY=${FIREFLY_APP_KEY}
+    volumes:
+      - ${FIREFLY_UPLOAD_PATH}:/var/www/html/storage/upload
+    ports:
+      - ${FIREFLY_PORT}:8080
+    networks:
+      - finance_network_prod
+
+networks:
+  finance_network_prod:
+    external: true
