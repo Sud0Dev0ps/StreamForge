@@ -15,6 +15,22 @@ services:
     restart: unless-stopped
     networks:
       - media_network_prod
+
+  jellyfin:
+    image: lscr.io/linuxserver/jellyfin:latest
+    container_name: jellyfin
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${JELLYFIN_CONFIG_PATH}:/config
+      - ${DATA_PATH}:/data
+    ports:
+      - ${JELLYFIN_PORT}:8096
+    restart: unless-stopped
+    networks:
+      - media_network_prod 
   
   navidrome:
     image: deluan/navidrome:latest
