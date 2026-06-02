@@ -81,6 +81,45 @@ HOMEPAGE_ALLOWED_HOSTS=192.168.x.x:3001
 - Music library will begin scanning automatically from the configured music path
 - Scanning may take several minutes depending on library size
 
+### Plex (Media Server)
+**Access:** `http://production-ip:32400/web`
+
+#### ⚠️ Network Mode: Host
+Plex runs with `network_mode: host` — it binds directly to the host network. This is required for local network device discovery (mDNS). There is no Docker port publishing for this service.
+
+#### Claim Token
+- On first deployment, `PLEX_CLAIM` must be set in `.env`
+- Get a fresh token from: https://plex.tv/claim
+- **Token expires after 4 minutes** — have your `.env` ready before fetching it
+- After claiming, the token is no longer needed but can remain in `.env`
+
+#### ⚠️ Volume Mount Change Pending
+Current compose uses `${DATA_PATH}:/data` — library paths inside Plex must be updated to match:
+- TV: `/data/media/tv`
+- Movies: `/data/media/movies`
+- Music: `/data/media/music`
+
+**Do not redeploy Plex without updating library paths first** — this is a live, family-facing service.
+
+### Jellyfin (Media Server)
+**Access:** `http://production-ip:8096`
+
+#### First Run
+- Navigate to the UI on first access to complete the setup wizard
+- Create your admin account
+- Add media libraries pointing to:
+  - TV Shows: `/data/media/tv`
+  - Movies: `/data/media/movies`
+  - Music: `/data/media/music`
+- Library scan will begin automatically — may take several minutes depending on library size
+
+#### Seerr Integration
+Seerr connects to Jellyfin (not Plex) once the family cutover is complete. Update Seerr settings at that time:
+- Navigate to: Settings → Media Server
+- Switch from Plex to Jellyfin
+- Jellyfin URL: `http://production-ip:8096`
+- API Key: Copy from Jellyfin → Dashboard → API Keys
+
 ---
 
 ## Verification Checklist
@@ -130,15 +169,28 @@ HOMEPAGE_ALLOWED_HOSTS=192.168.x.x:3001
 
 ### Seerr
 - [ ] UI accessible at `http://production-ip:5055`
-- [ ] Plex connected and tested
+- [ ] Plex or Jellyfin connected and tested (see Jellyfin section for cutover notes)
 - [ ] Sonarr connected and tested
 - [ ] Radarr connected and tested
+
+### Plex
+- [ ] UI accessible at `http://production-ip:32400/web`
+- [ ] Claim token set in `.env` before first deployment
+- [ ] ⚠️ Library paths updated to `/data/media/tv`, `/data/media/movies`, `/data/media/music` before redeploying
+- [ ] Existing library metadata verified after redeploy
+
+### Jellyfin
+- [ ] UI accessible at `http://production-ip:8096`
+- [ ] Admin account created
+- [ ] Media libraries configured with correct paths
+- [ ] Library scan completed — TV, movies, music visible
+- [ ] Playback verified on at least one device
 
 ---
 
 ## Network Architecture
 
-All media services run on `media_network_prod` (172.31.0.0/16).
+All media services run on `media_network_prod` (172.31.0.0/16), with the exception of Plex which uses host networking.
 
 | Service | Network |
 |---------|---------|
@@ -149,6 +201,8 @@ All media services run on `media_network_prod` (172.31.0.0/16).
 | sonarr | media_network_prod |
 | nzbget | media_network_prod |
 | seerr | media_network_prod |
+| jellyfin | media_network_prod |
+| plex | host (network_mode: host) |
 
 ---
 
