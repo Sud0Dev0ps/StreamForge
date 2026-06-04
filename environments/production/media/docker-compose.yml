@@ -3,10 +3,10 @@ services:
   homepage:
     image: ghcr.io/gethomepage/homepage:latest
     container_name: homepage
+    group_add:
+      - ${DOCKER_GID}
     environment:
       - HOMEPAGE_ALLOWED_HOSTS=${HOMEPAGE_ALLOWED_HOSTS}
-      - PUID=${PUID}
-      - PGID=${PGID}
     ports:
       - ${HOMEPAGE_PORT}:3000
     volumes:
