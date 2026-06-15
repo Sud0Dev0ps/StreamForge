@@ -30,7 +30,18 @@ services:
       - ${JELLYFIN_PORT}:8096
     restart: unless-stopped
     networks:
-      - media_network_prod 
+      - media_network_prod
+
+  metube:
+    image: ghcr.io/alexta69/metube
+    container_name: metube
+    ports:
+      - ${METUBE_PORT}:8081
+    volumes:
+      - ${METUBE_DOWNLOAD_PATH}:/downloads
+    restart: unless-stopped
+    networks:
+      - media_network_prod
   
   navidrome:
     image: deluan/navidrome:latest
