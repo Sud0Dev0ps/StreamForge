@@ -1,6 +1,7 @@
 # StreamForge Media Stack — Post Deployment Configuration
 
-After running `docker compose up -d` from `environments/production/media/`, follow the configuration steps below, then use the verification checklist to confirm everything is working.
+After running `docker compose up -d` from `environments/production/media/` 
+Follow the configuration steps below, then use the verification checklist to confirm everything is working.
 
 ---
 
@@ -8,30 +9,66 @@ After running `docker compose up -d` from `environments/production/media/`, foll
 
 - `media_network_prod` network created via `setup-network.sh`
 - `.env` file in place at `environments/production/media/.env`
-- All config folders present under `/opt/appdata/`
-- Homepage config files in place at `/opt/appdata/homepage/config/` (not Git-tracked — copy from backup or configure manually)
+- All configuration directories present under `/opt/appdata`
+- NAS mounted and accessible at `/mnt/data`
+- Homepage example configuration files available in the repository
 
 ---
 
 ## Configuration Steps
 
 ### Radarr (Movies)
+
 **Access:** `http://production-ip:7878`
 
-#### Authentication (Recommended)
+#### Authentication
+
 - Navigate to: Settings → General → Security
 - Set Authentication to: **Forms (Login Page)**
 - Create username and password
-- **Important:** Keep "Disable authentication for local addresses" **UNCHECKED**
+- Leave **Disable authentication for local addresses** unchecked
 
 #### Media Management
+
 - Navigate to: Settings → Media Management → Root Folders
-- Add Root Folder: `/data/media/movies`
+- Add root folder: `/data/media/movies`
+
+#### Download Client
+
+- Add NZBGet as the download client
+- NZBGet host: `production-ip`
+- NZBGet port: `6789`
+- Test connection and save
+
+---
+
+### Sonarr (TV)
+
+**Access:** `http://production-ip:8989`
+
+#### Authentication
+
+- Navigate to: Settings → General → Security
+- Set Authentication to: **Forms (Login Page)**
+- Create username and password
+
+#### Media Management
+
+- Add root folder: `/data/media/tv`
+
+#### Download Client
+
+- Add NZBGet as the download client
+- Test connection and save
+
+---
 
 ### Prowlarr (Indexer Manager)
+
 **Access:** `http://production-ip:9696`
 
-#### Authentication (Recommended)
+#### Authentication
+
 - Navigate to: Settings → General → Security
 - Set Authentication to: **Forms (Login Page)**
 - Create username and password
@@ -39,158 +76,290 @@ After running `docker compose up -d` from `environments/production/media/`, foll
 #### Connect Applications
 
 **For Sonarr:**
-- Prowlarr Server: `http://localhost:9696` (default)
-- Sonarr Server: `http://production-ip:8989`
-- API Key: Copy from Sonarr → Settings → General → Security → API Key
+- Sonarr URL: `http://production-ip:8989`
+- API Key: Sonarr → Settings → General → Security → API Key
 - Test connection and save
 
 **For Radarr:**
-- Prowlarr Server: `http://localhost:9696` (default)
-- Radarr Server: `http://production-ip:7878`
-- API Key: Copy from Radarr → Settings → General → Security → API Key
+- Radarr URL: `http://production-ip:7878`
+- API Key: Radarr → Settings → General → Security → API Key
 - Test connection and save
 
 #### Add Indexers
+
 - Navigate to: Indexers → Add Indexer
 - Add your Usenet indexers
-- Configure with your indexer API keys/credentials
-- Prowlarr will automatically sync these to Sonarr and Radarr
+- Configure API keys and credentials
+- Confirm indexers sync to Sonarr and Radarr
+
+---
+
+### NZBGet
+
+**Access:** `http://production-ip:6789`
+
+#### Initial Configuration
+
+- Change the default password
+- Configure news servers
+- Configure categories for `tv` and `movies`
+
+#### Active Download Structure
+
+NZBGet uses:
+
+```
+/data/downloads
+├── completed
+├── intermediate
+├── nzb
+├── queue
+└── tmp
+```
+
+**Host path:** `/mnt/data/downloads`
+
+**Container path:** `/data/downloads`
+
+---
+
+## Runtime Services
 
 ### Homepage
+
 **Access:** `http://production-ip:3001`
 
-#### Config Files
-Homepage config files are **not Git-tracked** — they must be in place at `/opt/appdata/homepage/config/` before the container starts. Files required:
-- `services.yaml` — service links and integrations
-- `widgets.yaml` — dashboard widgets
-- `settings.yaml` — general settings
-- `bookmarks.yaml` — bookmarks
-- `docker.yaml` — Docker integration
+#### Configuration Files
 
-Copy from backup or configure manually on first run.
+Runtime configuration location: `/opt/appdata/homepage/config`
+
+Example files are stored in Git:
+
+```
+environments/production/media/homepage/
+├── bookmarks.yaml.example
+├── docker.yaml.example
+├── services.yaml.example
+├── settings.yaml.example
+└── widgets.yaml.example
+```
+
+**Required live files:**
+
+- bookmarks.yaml
+- docker.yaml
+- services.yaml
+- settings.yaml
+- widgets.yaml
+
+**For a new deployment:**
+
+```bash
+mkdir -p /opt/appdata/homepage/config
+```
+
+Copy the example files, remove the `.example` extension, and customise values for the environment.
 
 #### HOMEPAGE_ALLOWED_HOSTS
-Ensure `HOMEPAGE_ALLOWED_HOSTS` in `.env` matches your production server IP and port exactly:
-HOMEPAGE_ALLOWED_HOSTS=192.168.x.x:3001
 
-### Navidrome (Music)
+Ensure `.env` contains:
+
+```
+HOMEPAGE_ALLOWED_HOSTS=<server-ip>:3001
+```
+
+**Example:**
+
+```
+HOMEPAGE_ALLOWED_HOSTS=192.168.x.x:3001
+```
+
+Homepage will reject requests if the host header does not match.
+
+---
+
+### Navidrome
+
 **Access:** `http://production-ip:4533`
 
 #### First Run
-- Navigate to the UI and create your admin account on first access
-- Music library will begin scanning automatically from the configured music path
-- Scanning may take several minutes depending on library size
 
-### Plex (Media Server)
+- Create the admin account
+- Confirm music library path is available
+- Allow the initial scan to complete
+
+**Current music path:** `/data/media/mixes`
+
+---
+
+### Plex
+
 **Access:** `http://production-ip:32400/web`
 
-#### ⚠️ Network Mode: Host
-Plex runs with `network_mode: host` — it binds directly to the host network. This is required for local network device discovery (mDNS). There is no Docker port publishing for this service.
+#### Network Mode
+
+Plex uses host networking:
+
+```yaml
+network_mode: host
+```
+
+This is required for local network discovery.
 
 #### Claim Token
-- On first deployment, `PLEX_CLAIM` must be set in `.env`
-- Get a fresh token from: https://plex.tv/claim
-- **Token expires after 4 minutes** — have your `.env` ready before fetching it
-- After claiming, the token is no longer needed but can remain in `.env`
 
-#### ⚠️ Volume Mount Change Pending
-Current compose uses `${DATA_PATH}:/data` — library paths inside Plex must be updated to match:
-- TV: `/data/media/tv`
-- Movies: `/data/media/movies`
-- Music: `/data/media/music`
+Before first deployment:
 
-**Do not redeploy Plex without updating library paths first** — this is a live, family-facing service.
+```
+PLEX_CLAIM=<token>
+```
 
-### Jellyfin (Media Server)
+Get a fresh token from: https://plex.tv/claim
+
+The token expires after approximately 4 minutes.
+
+#### Library Paths
+
+Verify Plex libraries point to:
+
+- `/data/media/tv`
+- `/data/media/movies`
+- `/data/media/music`
+
+---
+
+### Jellyfin
+
 **Access:** `http://production-ip:8096`
 
 #### First Run
-- Navigate to the UI on first access to complete the setup wizard
-- Create your admin account
-- Add media libraries pointing to:
-  - TV Shows: `/data/media/tv`
-  - Movies: `/data/media/movies`
-  - Music: `/data/media/music`
-- Library scan will begin automatically — may take several minutes depending on library size
+
+- Complete setup wizard
+- Create admin account
+- Configure libraries:
+  - TV Shows → `/data/media/tv`
+  - Movies → `/data/media/movies`
+  - Music → `/data/media/music`
+- Allow library scan to complete
 
 #### Seerr Integration
-Seerr connects to Jellyfin (not Plex) once the family cutover is complete. Update Seerr settings at that time:
-- Navigate to: Settings → Media Server
-- Switch from Plex to Jellyfin
+
+When Jellyfin becomes the primary media server:
+
+- Navigate to: Seerr → Settings → Media Server
 - Jellyfin URL: `http://production-ip:8096`
-- API Key: Copy from Jellyfin → Dashboard → API Keys
+- Use a Jellyfin API key
+
+---
+
+### Seerr
+
+**Access:** `http://production-ip:5055`
+
+Configure and test:
+
+- Jellyfin or Plex
+- Sonarr
+- Radarr
+
+---
+
+### MeTube
+
+**Access:** `http://production-ip:8081`
+
+**Download path:** `/downloads`
+
+**Host path:** `/mnt/data/downloads/metube`
 
 ---
 
 ## Verification Checklist
 
 ### Homepage
-- [ ] UI accessible at `http://production-ip:3001`
-- [ ] All service links loading correctly
-- [ ] Docker integration showing container statuses
 
-### Navidrome
-- [ ] UI accessible at `http://production-ip:4533`
-- [ ] Music library scan completed
-- [ ] Albums and artists visible
+- [ ] UI accessible at `http://production-ip:3001`
+- [ ] Service links working
+- [ ] Docker integration showing container status
 
 ### NZBGet
+
 - [ ] UI accessible at `http://production-ip:6789`
 - [ ] Default password changed
-- [ ] News server(s) configured and tested
-- [ ] Categories `tv` and `movies` exist
-- [ ] Downloads completing to `/data/downloads/usenet/completed/`
+- [ ] News servers configured
+- [ ] Categories `tv` and `movies` configured
+- [ ] Downloads completing successfully
 
 ### Prowlarr
-- [ ] UI accessible at `http://production-ip:9696`
-- [ ] Authentication enabled (credentials stored securely)
-- [ ] Sonarr connected (API key verified)
-- [ ] Radarr connected (API key verified)
-- [ ] Indexers added and configured
-- [ ] Indexers successfully synced to both Sonarr and Radarr
 
-### Radarr
-- [ ] UI accessible at `http://production-ip:7878`
-- [ ] Authentication enabled (credentials stored securely)
-- [ ] Root folder `/data/media/movies` configured
-- [ ] NZBGet download client added and tested
-- [ ] Remote path mapping configured correctly
-- [ ] Indexers synced from Prowlarr
-- [ ] **End-to-end test:** Search for a movie → Download → Verify import to `/data/media/movies/`
+- [ ] UI accessible at `http://production-ip:9696`
+- [ ] Authentication enabled
+- [ ] Sonarr connected
+- [ ] Radarr connected
+- [ ] Indexers configured
+- [ ] Indexers syncing correctly
 
 ### Sonarr
+
 - [ ] UI accessible at `http://production-ip:8989`
-- [ ] Authentication enabled (credentials stored securely)
-- [ ] Root folder `/data/media/tv` configured
-- [ ] NZBGet download client added and tested
-- [ ] Remote path mapping configured correctly
+- [ ] Authentication enabled
+- [ ] Root folder configured: `/data/media/tv`
+- [ ] Download path `/data/downloads` accessible
 - [ ] Indexers synced from Prowlarr
-- [ ] **End-to-end test:** Search for a TV episode → Download → Verify import to `/data/media/tv/`
+- [ ] Test download imported successfully
+
+### Radarr
+
+- [ ] UI accessible at `http://production-ip:7878`
+- [ ] Authentication enabled
+- [ ] Root folder configured: `/data/media/movies`
+- [ ] Download path `/data/downloads` accessible
+- [ ] Indexers synced from Prowlarr
+- [ ] Test download imported successfully
 
 ### Seerr
+
 - [ ] UI accessible at `http://production-ip:5055`
-- [ ] Plex or Jellyfin connected and tested (see Jellyfin section for cutover notes)
-- [ ] Sonarr connected and tested
-- [ ] Radarr connected and tested
+- [ ] Media server connected
+- [ ] Sonarr connected
+- [ ] Radarr connected
+
+### Navidrome
+
+- [ ] UI accessible at `http://production-ip:4533`
+- [ ] Music library scanned
+- [ ] Artists and albums visible
 
 ### Plex
+
 - [ ] UI accessible at `http://production-ip:32400/web`
-- [ ] Claim token set in `.env` before first deployment
-- [ ] ⚠️ Library paths updated to `/data/media/tv`, `/data/media/movies`, `/data/media/music` before redeploying
-- [ ] Existing library metadata verified after redeploy
+- [ ] Library paths verified
+- [ ] Metadata intact
+- [ ] Playback verified
 
 ### Jellyfin
+
 - [ ] UI accessible at `http://production-ip:8096`
 - [ ] Admin account created
-- [ ] Media libraries configured with correct paths
-- [ ] Library scan completed — TV, movies, music visible
-- [ ] Playback verified on at least one device
+- [ ] Libraries configured
+- [ ] Scan completed
+- [ ] Playback verified
+
+### MeTube
+
+- [ ] UI accessible at `http://production-ip:8081`
+- [ ] Download path working
+- [ ] Test download completed successfully
 
 ---
 
 ## Network Architecture
 
-All media services run on `media_network_prod` (172.31.0.0/16), with the exception of Plex which uses host networking.
+All media services use `media_network_prod`.
+
+**Subnet:** `172.31.0.0/16`
+
+**Exception:** Plex → host networking
 
 | Service | Network |
 |---------|---------|
@@ -202,16 +371,62 @@ All media services run on `media_network_prod` (172.31.0.0/16), with the excepti
 | nzbget | media_network_prod |
 | seerr | media_network_prod |
 | jellyfin | media_network_prod |
-| plex | host (network_mode: host) |
+| metube | media_network_prod |
+| plex | host |
 
 ---
 
-## Rollback
+## Recovery Notes
 
-If a service fails to start, the old config is still available at `/opt/docker/<service>` until confirmed stable and removed.
+### Configuration Location
+
+All active service configuration resides under: `/opt/appdata`
+
+**Examples:**
+
+```
+/opt/appdata/homepage
+/opt/appdata/jellyfin
+/opt/appdata/navidrome
+/opt/appdata/nzbget
+/opt/appdata/prowlarr
+/opt/appdata/radarr
+/opt/appdata/sonarr
+/opt/appdata/seerr
+/opt/appdata/plex
+```
+
+### Source of Truth
+
+Git is the source of truth for:
+
+- Docker Compose files
+- Environment templates
+- Deployment documentation
+- Homepage example configuration
+
+**Production secrets remain in:** `environments/production/media/.env`
+
+These are not committed to Git.
+
+### Legacy Deployment Archive
+
+Legacy `/opt/docker` service directories have been archived and are no longer used by running containers.
+
+Current runtime configuration should be validated with:
 
 ```bash
-docker compose down
-cd /opt/docker/<service>
-docker compose up -d
+docker inspect <container-name>
 ```
+
+### Post-Restore Validation
+
+After any rebuild or restore:
+
+```bash
+docker compose config
+docker compose up -d
+docker compose ps
+```
+
+Then complete the verification checklist above.
