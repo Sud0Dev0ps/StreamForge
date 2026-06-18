@@ -1,36 +1,45 @@
 #!/bin/bash
 
-set -e
-
-echo "=== StreamForge Backup Started ==="
+set -euo pipefail
 
 BACKUP_DIR="/mnt/data/backups/streamforge"
+LOG_DIR="$BACKUP_DIR/logs"
+LOG_FILE="$LOG_DIR/backup-$(date +%F).log"
 
-echo "Backing up /opt/appdata..."
-rsync -avh --delete /opt/appdata/ "$BACKUP_DIR/appdata/"
+timestamp() {
+  date "+%Y-%m-%d %H:%M:%S"
+}
 
-echo "Backing up .env files..."
-cp ~/StreamForge/environments/production/media/.env \
-   "$BACKUP_DIR/env/media.env"
+log() {
+  echo "$(timestamp) $1" | tee -a "$LOG_FILE"
+}
 
-cp ~/StreamForge/environments/production/finance/.env \
-   "$BACKUP_DIR/env/finance.env"
+fail() {
+  log "ERROR: $1"
+  exit 1
+}
 
-cp ~/StreamForge/environments/production/infrastructure/.env \
-   "$BACKUP_DIR/env/infrastructure.env"
+mkdir -p "$LOG_DIR"
 
-echo "Backing up compose files..."
-cp ~/StreamForge/environments/production/media/docker-compose.yml \
-   "$BACKUP_DIR/manifests/"
+log "=== StreamForge Backup Started ==="
 
-cp ~/StreamForge/environments/production/finance/docker-compose.yml \
-   "$BACKUP_DIR/manifests/"
+[ -d "/opt/appdata" ] || fail "/opt/appdata does not exist"
+[ -d "$BACKUP_DIR" ] || fail "$BACKUP_DIR does not exist"
 
-cp ~/StreamForge/environments/production/infrastructure/docker-compose.yml \
-   "$BACKUP_DIR/manifests/"
+log "Backing up /opt/appdata..."
+rsync -avh --delete /opt/appdata/ "$BACKUP_DIR/appdata/" >> "$LOG_FILE" 2>&1
 
-echo "Backing up documentation..."
-cp ~/StreamForge/docs/disaster-recovery.md \
-   "$BACKUP_DIR/docs/"
+log "Backing up .env files..."
+cp ~/StreamForge/environments/production/media/.env "$BACKUP_DIR/env/media.env"
+cp ~/StreamForge/environments/production/finance/.env "$BACKUP_DIR/env/finance.env"
+cp ~/StreamForge/environments/production/infrastructure/.env "$BACKUP_DIR/env/infrastructure.env"
 
-echo "=== Backup Complete ==="
+log "Backing up compose files..."
+cp ~/StreamForge/environments/production/media/docker-compose.yml "$BACKUP_DIR/manifests/media-docker-compose.yml"
+cp ~/StreamForge/environments/production/finance/docker-compose.yml "$BACKUP_DIR/manifests/finance-docker-compose.yml"
+cp ~/StreamForge/environments/production/infrastructure/docker-compose.yml "$BACKUP_DIR/manifests/infrastructure-docker-compose.yml"
+
+log "Backing up documentation..."
+cp ~/StreamForge/docs/disaster-recovery.md "$BACKUP_DIR/docs/disaster-recovery.md"
+
+log "=== StreamForge Backup Complete ==="
