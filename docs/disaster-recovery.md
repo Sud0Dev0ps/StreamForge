@@ -1,6 +1,6 @@
 # StreamForge Disaster Recovery Runbook
 
-**Version:** 1.0  
+**Version:** 1.1  
 **Last Updated:** June 2026
 
 ---
@@ -25,8 +25,8 @@ The objective is to restore service quickly and consistently while minimizing da
 **Contains:**
 - Docker Compose files
 - Documentation
-- Environment templates
-- Homepage example configuration
+- Templates
+- Scripts
 
 ---
 
@@ -40,19 +40,6 @@ The objective is to restore service quickly and consistently while minimizing da
 **Approximate size:** 4 GB
 
 Contains persistent application state and configuration.
-
-**Examples:**
-- Plex
-- Jellyfin
-- Sonarr
-- Radarr
-- Prowlarr
-- Seerr
-- Navidrome
-- Homepage
-- Firefly
-- MariaDB
-- Dockhand
 
 ---
 
@@ -106,47 +93,57 @@ Secrets are intentionally excluded from Git.
 
 ---
 
+## Backup Strategy
+
+### Backup Location
+
+```
+/mnt/data/backups/streamforge
+```
+
+**Contains:**
+- `appdata/`
+- `env/`
+- `docs/`
+- `logs/`
+
+### Backup Scope
+
+| Asset | Method | Frequency |
+|-------|--------|-----------|
+| `/opt/appdata` | rsync mirror | Daily |
+| Production `.env` files | File copy | Daily |
+| DR documentation | File copy | Daily |
+| Git repository | GitHub | Continuous |
+| Media | Synology responsibility | Independent |
+| Downloads | No backup | N/A |
+
+### Automation
+
+**Daily backup job:**
+```
+0 12 * * * /home/serveradmin/StreamForge/scripts/backup-streamforge.sh
+```
+
+### Logging
+
+Logs are stored in:
+```
+/mnt/data/backups/streamforge/logs
+```
+
+**Example:**
+```
+backup-2026-06-19.log
+```
+
 ## Active Compose Projects
 
-### Media Stack
-
-**Location:**
-```
-environments/production/media/docker-compose.yml
-```
-
-**Services:**
-- homepage
-- jellyfin
-- plex
-- navidrome
-- nzbget
-- prowlarr
-- radarr
-- sonarr
-- seerr
-- metube
-
-### Finance Stack
-
-**Location:**
-```
-environments/production/finance/docker-compose.yml
-```
-
-**Services:**
-- firefly
-- mariadb
-
-### Infrastructure Stack
-
-**Location:**
-```
-environments/production/infrastructure/docker-compose.yml
-```
-
-**Services:**
-- dockhand
+| Project | Containers |
+|---------|-----------|
+| media | 10 |
+| finance | 2 |
+| infrastructure | 1 |
 
 ---
 
@@ -162,14 +159,17 @@ environments/production/infrastructure/docker-compose.yml
 ### Survives
 - GitHub repository
 - Synology NAS
+- StreamForge backups
 
 ### Recovery Procedure
 
 #### Step 1: Install Ubuntu
 
-Update packages.
-
-Install Docker and Docker Compose.
+Install:
+- Docker
+- Docker Compose
+- Git
+- rsync
 
 #### Step 2: Mount NAS
 
@@ -189,18 +189,21 @@ df -h /mnt/data
 git clone https://github.com/Sud0Dev0ps/StreamForge.git
 ```
 
-#### Step 4: Restore Production .env Files
+#### Step 4: Restore Backup
 
-Restore:
-- `environments/production/media/.env`
-- `environments/production/finance/.env`
-- `environments/production/infrastructure/.env`
+**Restore appdata:**
+```bash
+# From backup location to target location
+/mnt/data/backups/streamforge/appdata → /opt/appdata
+```
 
-#### Step 5: Restore /opt/appdata
+**Restore secrets:**
+```bash
+# From backup location to target location
+/mnt/data/backups/streamforge/env → ~/StreamForge/environments/production/
+```
 
-Restore application configuration.
-
-#### Step 6: Start Stacks
+#### Step 5: Start Stacks
 
 **Media:**
 ```bash
@@ -220,7 +223,7 @@ cd ../infrastructure
 docker compose up -d
 ```
 
-#### Step 7: Validate Services
+#### Step 6: Validate Services
 
 **Verify:**
 ```bash
@@ -230,10 +233,20 @@ docker ps
 
 **Expected:**
 ```
-finance running (2)
-infrastructure running (1)
-media running (10)
+finance         running (2)
+infrastructure  running (1)
+media           running (10)
 ```
+
+#### Step 7: Validate Application State
+
+Confirm:
+- Plex libraries present
+- Sonarr configuration intact
+- Radarr configuration intact
+- Homepage widgets available
+- Firefly accessible
+- Dockhand operational
 
 ---
 
@@ -245,15 +258,16 @@ media running (10)
 - `/mnt/data/backups`
 
 ### Survives
-- GitHub repository
+- Running server
 - `/opt/appdata`
-- Production `.env` files
+- Production `.env`
+- GitHub repository
 
 ### Impact
 
-Services remain recoverable.
+Services remain operational.
 
-Media content must be restored or reacquired.
+Media content and backups must be restored or reacquired.
 
 ---
 
@@ -263,10 +277,11 @@ Media content must be restored or reacquired.
 - Running server
 - AppData
 - NAS
+- Backup copies
 
 ### Impact
 
-Infrastructure definitions are lost.
+Infrastructure definitions lost remotely.
 
 Recovery possible from local repository.
 
@@ -281,48 +296,43 @@ Production `.env` files.
 
 Services cannot start correctly.
 
-Compose files remain intact.
-
 ### Mitigation
 
-Restore secrets from password manager or secret backup.
+Restore from:
+```
+/mnt/data/backups/streamforge/env
+```
+
+or password manager.
 
 ---
 
 ## Recovery Objectives (RTO)
 
-| Service | Target Recovery Time |
-|---------|----------------------|
-| Homepage | 15 minutes |
-| Dockhand | 15 minutes |
-| Sonarr | 30 minutes |
-| Radarr | 30 minutes |
-| Prowlarr | 30 minutes |
-| Seerr | 30 minutes |
-| Navidrome | 30 minutes |
-| Jellyfin | 1 hour |
-| Plex | 1 hour |
-| Firefly | 2 hours |
+| Service Group | Target Recovery Time |
+|---------------|----------------------|
+| Infrastructure | 15 minutes |
+| Media Stack | 1 hour |
+| Finance Stack | 2 hours |
 
 ---
 
-## Deferred Work
+## Future Improvements
 
-Future improvements:
-
-- Backup strategy
-- Backup verification
 - Restore testing
+- Recovery Point Objectives (RPO)
+- Hyper Backup
+- Snapshot Replication
+- Offsite backups
 - Monitoring
 - Alerting
 - CI/CD
 - Ansible automation
-- Offsite backups
-- Recovery Point Objectives (RPO)
+- Security hardening
 
 ---
 
-## Notes
+## Legacy Assets
 
 Historical artifacts currently exist:
 
@@ -330,21 +340,24 @@ Historical artifacts currently exist:
 - `/mnt/data/backups/docker`
 - `/var/lib/docker/volumes`
 
-These are considered legacy assets and are not part of the active StreamForge architecture.
+These are not part of the active architecture.
 
-**Do not delete without validation.**
+Do not remove without validation.
 
 ---
 
 ## Philosophy
 
-This Version 1 runbook prioritizes clarity and recoverability over operational perfection.
+**Version 1** answered:
+> Can StreamForge be rebuilt?
 
-It answers the most important question: **"If I got hit by a bus tomorrow, could someone else rebuild StreamForge?"**
+**Version 1.1** answers:
+> Can StreamForge be rebuilt from known backups?
 
-Version 1 says **yes**.
+**Future versions** will answer:
+- How quickly?
+- How much data would we lose?
+- How do we prove our backups work?
+- Can recovery be automated?
 
-Future versions will answer:
-- "How quickly?"
-- "How much data would we lose?"
-- "How do we prove our backups work?"
+The goal is operational maturity, not perfection.
