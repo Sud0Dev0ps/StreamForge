@@ -1,95 +1,131 @@
 # StreamForge Disaster Recovery Runbook
 
-**Version:** 1.1  
-**Last Updated:** June 2026
+**Version:** 1.2  
+**Last Updated:** June 2026  
+**Status:** Active
 
 ---
 
 ## Purpose
 
-This document describes the critical assets and recovery procedures required to rebuild the StreamForge platform following infrastructure failure.
+This document describes the recovery procedures required to restore the StreamForge platform following infrastructure failure.
 
 The objective is to restore service quickly and consistently while minimizing data loss.
+
+This runbook focuses on **how to recover**.
+
+For service priority, RTO, RPO, and recovery classification, see: [`docs/service-tiers.md`]
+
+---
+
+## Recovery Principle
+
+**A backup does not exist until a restore has been proven.**
+
+StreamForge backups have been partially validated through a successful Homepage restore.
 
 ---
 
 ## Architecture Overview
 
+### Production Server
+
+- **Hostname:** dockerserver
+- **Repository:** ~/StreamForge
+
 ### Source of Truth
 
-**GitHub repository:**
-```
-~/StreamForge
-```
+The GitHub repository is the source of truth for infrastructure definitions.
 
-**Contains:**
+**Production repository location:** `~/StreamForge`
+
+**The repository contains:**
 - Docker Compose files
 - Documentation
-- Templates
 - Scripts
+- Environment templates
+- Homepage example configuration
+
+---
+
+## Docker Compose Projects
+
+**Current production state:**
+
+| Project | Expected Containers |
+|---------|-------------------|
+| media | 10 |
+| finance | 2 |
+| infrastructure | 1 |
+
+**Expected output:**
+```
+finance          running(2)
+infrastructure  running(1)
+media           running(10)
+```
+
+**Validate with:**
+```bash
+docker compose ls
+```
 
 ---
 
 ## Runtime Configuration
 
-**Location:**
-```
-/opt/appdata
-```
+Application runtime configuration is stored outside the Git repository.
 
-**Approximate size:** 4 GB
+**Live location:** `/opt/appdata`
 
-Contains persistent application state and configuration.
+**Approximate size:** ~4 GB
+
+**Examples:**
+- Plex
+- Jellyfin
+- Sonarr
+- Radarr
+- Prowlarr
+- NZBGet
+- Homepage
+- Firefly III
+- MariaDB
+- Dockhand
 
 ---
 
-## Secrets
+## Production Environment Files
 
-**Location:**
+Production `.env` files contain secrets and environment-specific values.
+
+**Live locations:**
 ```
-environments/production/*/.env
+~/StreamForge/environments/production/media/.env
+~/StreamForge/environments/production/finance/.env
+~/StreamForge/environments/production/infrastructure/.env
 ```
 
-**Current files:**
-- `environments/production/media/.env`
-- `environments/production/finance/.env`
-- `environments/production/infrastructure/.env`
-
-Secrets are intentionally excluded from Git.
+**Important:** These files are excluded from Git and must never be committed. They are backed up daily to the NAS.
 
 ---
 
 ## NAS Storage
 
-**Mounted from:**
+**NAS mount:** `/mnt/data`
+
+**NAS export:** `192.168.10.2:/volume1/data`
+
+**The NAS provides:**
+- Media storage
+- Download storage
+- StreamForge backups
+
+**Important paths:**
 ```
-192.168.10.2:/volume1/data
+/mnt/data/media
+/mnt/data/downloads
+/mnt/data/backups/streamforge
 ```
-
-**Mounted as:**
-```
-/mnt/data
-```
-
-**Contains:**
-- `/media`
-- `/downloads`
-- `/backups`
-
----
-
-## Critical Assets
-
-| Asset | Importance |
-|-------|-----------|
-| GitHub Repository | Critical |
-| `/opt/appdata` | Critical |
-| Production `.env` files | Critical |
-| Password Manager | Critical |
-| NAS Media | Important |
-| Downloads | Low |
-| Historical Docker Backups | Legacy |
-| Docker Volumes | Legacy |
 
 ---
 
@@ -97,301 +133,506 @@ Secrets are intentionally excluded from Git.
 
 ### Backup Location
 
+StreamForge backups are stored on the NAS: `/mnt/data/backups/streamforge`
+
+**Backup folder structure:**
 ```
-/mnt/data/backups/streamforge
+/mnt/data/backups/streamforge/appdata
+/mnt/data/backups/streamforge/env
+/mnt/data/backups/streamforge/docs
+/mnt/data/backups/streamforge/logs
 ```
 
-**Contains:**
-- `appdata/`
-- `env/`
-- `docs/`
-- `logs/`
+### Backup Script
 
-### Backup Scope
+**Backup script location:** `~/StreamForge/scripts/backup-streamforge.sh`
 
-| Asset | Method | Frequency |
-|-------|--------|-----------|
-| `/opt/appdata` | rsync mirror | Daily |
-| Production `.env` files | File copy | Daily |
-| DR documentation | File copy | Daily |
-| Git repository | GitHub | Continuous |
-| Media | Synology responsibility | Independent |
-| Downloads | No backup | N/A |
+**The backup script performs:**
+- rsync mirror of `/opt/appdata`
+- Backup of production `.env` files
+- Backup of disaster recovery documentation
+- Timestamped logging
+- Strict shell safety using `set -euo pipefail`
 
-### Automation
+### Backup Schedule
 
-**Daily backup job:**
+Backups run daily via cron:
+
 ```
 0 12 * * * /home/serveradmin/StreamForge/scripts/backup-streamforge.sh
 ```
 
-### Logging
+This runs once per day at midday.
 
-Logs are stored in:
-```
-/mnt/data/backups/streamforge/logs
-```
+### Backup Logs
 
-**Example:**
-```
-backup-2026-06-19.log
-```
+Backup logs are stored in: `/mnt/data/backups/streamforge/logs`
 
-## Active Compose Projects
+**Example log file:** `backup-YYYY-MM-DD.log`
 
-| Project | Containers |
-|---------|-----------|
-| media | 10 |
-| finance | 2 |
-| infrastructure | 1 |
+**Check backup logs:**
+```bash
+ls -lah /mnt/data/backups/streamforge/logs
+tail -20 /mnt/data/backups/streamforge/logs/backup-YYYY-MM-DD.log
+```
 
 ---
 
-## Scenario 1 – Complete Server Loss
+## Critical Assets
 
-### Lost
-- Ubuntu installation
-- Docker installation
-- Containers
-- `/opt/appdata`
-- Local `.env` files
+### Critical
 
-### Survives
+These are required for recovery:
 - GitHub repository
-- Synology NAS
-- StreamForge backups
+- `/opt/appdata`
+- Production `.env` files
+- Password manager
 
-### Recovery Procedure
+### Important
 
-#### Step 1: Install Ubuntu
+These are important but not fully protected by the current backup strategy:
+- NAS media library
 
-Install:
-- Docker
-- Docker Compose
-- Git
-- rsync
+### Disposable
 
-#### Step 2: Mount NAS
+These can be recreated:
+- Downloads
+- Temporary working data
 
-**Verify:**
+### Legacy
+
+These exist but are not part of the current active recovery strategy:
+- `/opt/docker-legacy`
+- `/mnt/data/backups/docker`
+- Docker named volumes under `/var/lib/docker/volumes`
+
+**Do not delete legacy assets without validation.**
+
+---
+
+## Known Constraints
+
+| Constraint | Status |
+|-----------|--------|
+| Backups run daily | Accepted |
+| Appdata RPO is approximately 24 hours | Accepted |
+| Media library is not backed up | Accepted for now |
+| Restore process is manual | Accepted for now |
+| No offsite backup | Future improvement |
+| NAS permissions depend on current Synology mapping | Deferred to security session |
+
+---
+
+## Full Recovery Procedure
+
+Use this process during a major outage or rebuild.
+
+---
+
+### Step 1 — Restore or Prepare Docker Host
+
+**Goal:** Bring the production server back online.
+
+**Validate:**
 ```bash
-df -h /mnt/data
-```
-
-**Expected:**
-```
-192.168.10.2:/volume1/data
-```
-
-#### Step 3: Clone StreamForge
-
-```bash
-git clone https://github.com/Sud0Dev0ps/StreamForge.git
-```
-
-#### Step 4: Restore Backup
-
-**Restore appdata:**
-```bash
-# From backup location to target location
-/mnt/data/backups/streamforge/appdata → /opt/appdata
-```
-
-**Restore secrets:**
-```bash
-# From backup location to target location
-/mnt/data/backups/streamforge/env → ~/StreamForge/environments/production/
-```
-
-#### Step 5: Start Stacks
-
-**Media:**
-```bash
-cd environments/production/media
-docker compose up -d
-```
-
-**Finance:**
-```bash
-cd ../finance
-docker compose up -d
-```
-
-**Infrastructure:**
-```bash
-cd ../infrastructure
-docker compose up -d
-```
-
-#### Step 6: Validate Services
-
-**Verify:**
-```bash
-docker compose ls
+hostname
+whoami
+docker --version
 docker ps
 ```
 
-**Expected:**
-```
-finance         running (2)
-infrastructure  running (1)
-media           running (10)
-```
-
-#### Step 7: Validate Application State
-
-Confirm:
-- Plex libraries present
-- Sonarr configuration intact
-- Radarr configuration intact
-- Homepage widgets available
-- Firefly accessible
-- Dockhand operational
+**Success criteria:**
+- Server is accessible
+- Docker is installed
+- Docker daemon is running
 
 ---
 
-## Scenario 2 – NAS Loss
+### Step 2 — Confirm NAS Mount
 
-### Lost
-- `/mnt/data/media`
-- `/mnt/data/downloads`
-- `/mnt/data/backups`
-
-### Survives
-- Running server
-- `/opt/appdata`
-- Production `.env`
-- GitHub repository
-
-### Impact
-
-Services remain operational.
-
-Media content and backups must be restored or reacquired.
-
----
-
-## Scenario 3 – GitHub Loss
-
-### Survives
-- Running server
-- AppData
-- NAS
-- Backup copies
-
-### Impact
-
-Infrastructure definitions lost remotely.
-
-Recovery possible from local repository.
-
----
-
-## Scenario 4 – Secret Loss
-
-### Lost
-Production `.env` files.
-
-### Impact
-
-Services cannot start correctly.
-
-### Mitigation
-
-Restore from:
-```
-/mnt/data/backups/streamforge/env
+**Validate NAS mount:**
+```bash
+ls -lah /mnt/data
 ```
 
-or password manager.
+**Confirm expected directories exist:**
+```bash
+ls -lah /mnt/data/media
+ls -lah /mnt/data/downloads
+ls -lah /mnt/data/backups/streamforge
+```
+
+**Success criteria:**
+- `/mnt/data` is mounted
+- Backup folder is accessible
+- Media and downloads folders are visible
 
 ---
 
-## Recovery Objectives (RTO)
+### Step 3 — Restore StreamForge Repository
 
-| Service Group | Target Recovery Time |
-|---------------|----------------------|
-| Infrastructure | 15 minutes |
-| Media Stack | 1 hour |
-| Finance Stack | 2 hours |
+**If the repository already exists:**
+```bash
+cd ~/StreamForge
+git status
+git pull origin main
+```
+
+**If rebuilding from scratch:**
+```bash
+cd ~
+git clone https://github.com/Sud0Dev0ps/StreamForge.git
+cd StreamForge
+```
+
+**Success criteria:**
+- Repository exists at `~/StreamForge`
+- Main branch is available
+- Compose files are present
+
+**Validate:**
+```bash
+ls -lah environments/production/media/docker-compose.yml
+ls -lah environments/production/finance/docker-compose.yml
+ls -lah environments/production/infrastructure/docker-compose.yml
+```
+
+---
+
+### Step 4 — Restore Production Environment Files
+
+Restore `.env` files from backup.
+
+**Backup location:** `/mnt/data/backups/streamforge/env`
+
+**Live locations:**
+```
+~/StreamForge/environments/production/media/.env
+~/StreamForge/environments/production/finance/.env
+~/StreamForge/environments/production/infrastructure/.env
+```
+
+**Example restore commands:**
+```bash
+cp /mnt/data/backups/streamforge/env/media.env \
+~/StreamForge/environments/production/media/.env
+
+cp /mnt/data/backups/streamforge/env/finance.env \
+~/StreamForge/environments/production/finance/.env
+
+cp /mnt/data/backups/streamforge/env/infrastructure.env \
+~/StreamForge/environments/production/infrastructure/.env
+```
+
+**Validate:**
+```bash
+ls -lah ~/StreamForge/environments/production/media/.env
+ls -lah ~/StreamForge/environments/production/finance/.env
+ls -lah ~/StreamForge/environments/production/infrastructure/.env
+```
+
+**Success criteria:**
+- All three `.env` files exist
+- Files are readable
+- Files are not committed to Git
+
+**Validate Git safety:**
+```bash
+git status
+git check-ignore -v environments/production/media/.env
+git check-ignore -v environments/production/finance/.env
+git check-ignore -v environments/production/infrastructure/.env
+```
+
+---
+
+### Step 5 — Restore Application Configuration
+
+Restore `/opt/appdata` from backup.
+
+**Backup location:** `/mnt/data/backups/streamforge/appdata`
+
+**Live location:** `/opt/appdata`
+
+**Restore command:**
+```bash
+sudo rsync -avh /mnt/data/backups/streamforge/appdata/ /opt/appdata/
+```
+
+**Validate:**
+```bash
+du -sh /opt/appdata
+ls -lah /opt/appdata
+```
+
+**Success criteria:**
+- Service directories exist under `/opt/appdata`
+- No obvious missing application folders
+- No restore errors reported by rsync
+
+---
+
+### Step 6 — Confirm Docker Networks
+
+**Current production networks:**
+- media_network_prod
+- finance_network_prod
+- infra_network_prod
+
+**Validate:**
+```bash
+docker network ls
+```
+
+**If a required external network is missing, recreate it:**
+```bash
+docker network create media_network_prod
+docker network create finance_network_prod
+docker network create infra_network_prod
+```
+
+**Success criteria:**
+- Required Docker networks exist
+- Compose stacks can attach to their expected external networks
+
+---
+
+### Step 7 — Start Infrastructure Stack
+
+From the repository:
+```bash
+cd ~/StreamForge
+```
+
+Start infrastructure:
+```bash
+docker compose \
+-f environments/production/infrastructure/docker-compose.yml \
+up -d
+```
+
+**Validate:**
+```bash
+docker compose \
+-f environments/production/infrastructure/docker-compose.yml \
+ps
+```
+
+**Check logs:**
+```bash
+docker logs dockhand --tail 20
+```
+
+**Success criteria:**
+- Dockhand is running
+- No crash loop
+- Logs do not show critical errors
+
+---
+
+### Step 8 — Start Media Stack
+
+Start media services:
+```bash
+docker compose \
+-f environments/production/media/docker-compose.yml \
+up -d
+```
+
+**Validate:**
+```bash
+docker compose \
+-f environments/production/media/docker-compose.yml \
+ps
+```
+
+**Check logs:**
+```bash
+docker logs homepage --tail 20
+docker logs plex --tail 20
+docker logs sonarr --tail 20
+docker logs radarr --tail 20
+docker logs prowlarr --tail 20
+docker logs nzbget --tail 20
+```
+
+**Success criteria:**
+- Media containers are running
+- No crash loops
+- Homepage is accessible
+- Plex is accessible
+- Automation services are accessible
+
+---
+
+### Step 9 — Start Finance Stack
+
+Start finance services:
+```bash
+docker compose \
+-f environments/production/finance/docker-compose.yml \
+up -d
+```
+
+**Validate:**
+```bash
+docker compose \
+-f environments/production/finance/docker-compose.yml \
+ps
+```
+
+**Check logs:**
+```bash
+docker logs firefly --tail 20
+docker logs mariadb --tail 20
+```
+
+**Success criteria:**
+- Firefly III is running
+- MariaDB is running
+- No database startup errors
+
+---
+
+## Service URLs
+
+| Service | URL |
+|---------|-----|
+| Dockhand | `http://<server>:3000` |
+| Homepage | `http://<server>:3001` |
+| Jellyfin | `http://<server>:8096` |
+| Plex | `http://<server>:32400/web` |
+| Navidrome | `http://<server>:4533` |
+| NZBGet | `http://<server>:6789` |
+| Prowlarr | `http://<server>:9696` |
+| Radarr | `http://<server>:7878` |
+| Sonarr | `http://<server>:8989` |
+| Seerr | `http://<server>:5055` |
+| Firefly III | `http://<server>:8090` |
+
+---
+
+## Validation Checklist
+
+**Recovery is not complete until the user-facing service works.**
+
+```
+[ ] Server boots successfully
+[ ] Docker daemon is running
+[ ] NAS mount is accessible at /mnt/data
+[ ] StreamForge repository exists at ~/StreamForge
+[ ] Git working tree is clean or understood
+[ ] Production .env files restored
+[ ] /opt/appdata restored
+[ ] Docker networks exist
+[ ] Infrastructure stack running
+[ ] Media stack running
+[ ] Finance stack running
+[ ] Homepage loads
+[ ] Homepage cards work
+[ ] Plex loads
+[ ] Plex libraries are visible
+[ ] Plex media playback works
+[ ] Sonarr loads
+[ ] Radarr loads
+[ ] Prowlarr loads
+[ ] NZBGet loads
+[ ] Firefly III loads
+[ ] No critical errors in logs
+```
+
+---
+
+## Homepage Restore Test
+
+**Date:** 23 June 2026
+
+**Service:** Homepage
+
+**Objective:** Validate backup and recovery process using a low-risk service.
+
+### Procedure
+
+1. Confirmed backup existed: `/mnt/data/backups/streamforge/appdata/homepage`
+2. Confirmed live configuration existed: `/opt/appdata/homepage`
+3. Stopped Homepage container
+4. Renamed live configuration: `/opt/appdata/homepage` → `/opt/appdata/homepage.broken`
+5. Restored Homepage from backup: `/mnt/data/backups/streamforge/appdata/homepage` → `/opt/appdata/homepage`
+6. Started Homepage container
+7. Validated logs
+8. Confirmed Homepage loaded and cards worked
+
+### Result
+
+**SUCCESS**
+
+**Data Loss:** None
+
+### Observations
+
+Backup ownership appeared as: `1024 users`
+
+Original live ownership appeared as: `serveradmin serveradmin`
+
+Homepage still started successfully and functioned correctly. This may need further testing with LinuxServer containers, which may be more sensitive to permissions.
+
+---
+
+## Common Validation Commands
+
+**Check compose projects:**
+```bash
+docker compose ls
+```
+
+**Check running containers:**
+```bash
+docker ps
+```
+
+**Check logs:**
+```bash
+docker logs <container-name> --tail 20
+```
+
+**Check backup logs:**
+```bash
+ls -lah /mnt/data/backups/streamforge/logs
+tail -20 /mnt/data/backups/streamforge/logs/backup-YYYY-MM-DD.log
+```
+
+**Check appdata size:**
+```bash
+du -sh /opt/appdata
+```
+
+**Check backup size:**
+```bash
+du -sh /mnt/data/backups/streamforge/appdata
+```
 
 ---
 
 ## Future Improvements
 
-- Restore testing
-- Recovery Point Objectives (RPO)
-- Hyper Backup
-- Snapshot Replication
-- Offsite backups
-- Monitoring
-- Alerting
-- CI/CD
-- Ansible automation
-- Security hardening
+Potential improvements:
+- Test restore of a LinuxServer container
+- Add offsite backups
+- Configure Synology Hyper Backup
+- Investigate Snapshot Replication
+- Add monitoring and alerting
+- Add service health checks
+- Create Ansible rebuild playbook
+- Review NFS permissions
+- Review Docker socket exposure
+- Review backup retention policy
 
 ---
 
-## Legacy Assets
+## Document History
 
-Historical artifacts currently exist:
-
-- `/opt/docker-legacy`
-- `/mnt/data/backups/docker`
-- `/var/lib/docker/volumes`
-
-These are not part of the active architecture.
-
-Do not remove without validation.
-
----
-
-## Philosophy
-
-**Version 1** answered:
-> Can StreamForge be rebuilt?
-
-**Version 1.1** answers:
-> Can StreamForge be rebuilt from known backups?
-
-**Future versions** will answer:
-- How quickly?
-- How much data would we lose?
-- How do we prove our backups work?
-- Can recovery be automated?
-
-The goal is operational maturity, not perfection.
-
-## Restore Validation
-
-Date:
-23 June 2026
-
-Service:
-Homepage
-
-Objective:
-Validate backup and recovery procedures.
-
-Steps:
-
-1. Stop Homepage container.
-2. Rename /opt/appdata/homepage to homepage.broken.
-3. Restore from backup.
-4. Start container.
-5. Verify web UI and cards.
-
-Result:
-SUCCESS
-
-Duration:
-~5 minutes
-
-Data Loss:
-None
-
-Observations:
-
-- Backup ownership displayed as 1024:users.
-- Homepage container handled permissions automatically.
-- Functional validation confirmed dashboard and cards operated correctly.
+| Version | Date | Change |
+|---------|------|--------|
+| 1.0 | June 2026 | Initial Disaster Recovery runbook |
+| 1.1 | June 2026 | Added backup strategy, backup schedule, and recovery validation |
+| 1.2 | June 2026 | Added Homepage restore test and linked service classification document |
