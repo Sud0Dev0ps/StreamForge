@@ -361,3 +361,37 @@ Do not remove without validation.
 - Can recovery be automated?
 
 The goal is operational maturity, not perfection.
+
+## Restore Validation
+
+Date:
+23 June 2026
+
+Service:
+Homepage
+
+Objective:
+Validate backup and recovery procedures.
+
+Steps:
+
+1. Stop Homepage container.
+2. Rename /opt/appdata/homepage to homepage.broken.
+3. Restore from backup.
+4. Start container.
+5. Verify web UI and cards.
+
+Result:
+SUCCESS
+
+Duration:
+~5 minutes
+
+Data Loss:
+None
+
+Observations:
+
+- Backup ownership displayed as 1024:users.
+- Homepage container handled permissions automatically.
+- Functional validation confirmed dashboard and cards operated correctly.
