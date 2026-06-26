@@ -30,7 +30,7 @@ services:
     volumes:
       - ${FIREFLY_UPLOAD_PATH}:/var/www/html/storage/upload
     ports:
-      - 192.168.10.10:${FIREFLY_PORT}:8080
+      - ${SERVER_IP}:${FIREFLY_PORT}:8080
     networks:
       - finance_network_prod
 

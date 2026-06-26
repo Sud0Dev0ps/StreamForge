@@ -4,7 +4,7 @@ services:
     container_name: dockhand
     restart: unless-stopped
     ports:
-      - 192.168.10.10:${DOCKHAND_PORT}:3000
+      - ${SERVER_IP}:${DOCKHAND_PORT}:3000
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ${DOCKHAND_CONFIG_PATH}:/app/data
