@@ -19,7 +19,7 @@ fail() {
   exit 1
 }
 
-mkdir -p "$LOG_DIR"
+mkdir -p "$LOG_DIR" "$BACKUP_DIR/env" "$BACKUP_DIR/manifests" "$BACKUP_DIR/docs"
 
 log "=== StreamForge Backup Started ==="
 
@@ -27,12 +27,16 @@ log "=== StreamForge Backup Started ==="
 [ -d "$BACKUP_DIR" ] || fail "$BACKUP_DIR does not exist"
 
 log "Backing up /opt/appdata..."
-rsync -avh --delete /opt/appdata/ "$BACKUP_DIR/appdata/" >> "$LOG_FILE" 2>&1
+rsync -avh --no-owner --no-group --delete \
+  --exclude 'mariadb/' \
+  --exclude 'dockhand/' \
+  /opt/appdata/ "$BACKUP_DIR/appdata/" >> "$LOG_FILE" 2>&1
 
 log "Backing up .env files..."
 cp ~/StreamForge/environments/production/media/.env "$BACKUP_DIR/env/media.env"
 cp ~/StreamForge/environments/production/finance/.env "$BACKUP_DIR/env/finance.env"
 cp ~/StreamForge/environments/production/infrastructure/.env "$BACKUP_DIR/env/infrastructure.env"
+chmod 600 "$BACKUP_DIR"/env/*.env
 
 log "Backing up compose files..."
 cp ~/StreamForge/environments/production/media/docker-compose.yml "$BACKUP_DIR/manifests/media-docker-compose.yml"
