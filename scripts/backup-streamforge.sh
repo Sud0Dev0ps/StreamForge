@@ -32,6 +32,29 @@ rsync -avh --no-owner --no-group --delete \
   --exclude 'dockhand/' \
   /opt/appdata/ "$BACKUP_DIR/appdata/" >> "$LOG_FILE" 2>&1
 
+log "Backing up MariaDB database..."
+mkdir -p "$BACKUP_DIR/db"
+
+DB_DUMP_FILE="$BACKUP_DIR/db/firefly-mariadb-$(date +%F).sql.gz"
+
+set -a
+source ~/StreamForge/environments/production/finance/.env
+set +a
+
+docker exec mariadb mariadb-dump \
+  -u"$MYSQL_USER" \
+  -p"$MYSQL_PASSWORD" \
+  "$MYSQL_DATABASE" \
+  | gzip > "$DB_DUMP_FILE"
+
+chmod 600 "$DB_DUMP_FILE"
+
+[ -s "$DB_DUMP_FILE" ] || fail "MariaDB dump file is empty"
+
+gzip -t "$DB_DUMP_FILE" || fail "MariaDB dump gzip integrity check failed"
+
+log "MariaDB backup created: $DB_DUMP_FILE"
+
 log "Backing up .env files..."
 cp ~/StreamForge/environments/production/media/.env "$BACKUP_DIR/env/media.env"
 cp ~/StreamForge/environments/production/finance/.env "$BACKUP_DIR/env/finance.env"
