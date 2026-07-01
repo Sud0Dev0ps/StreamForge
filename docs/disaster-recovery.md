@@ -1,7 +1,7 @@
 # StreamForge Disaster Recovery Runbook
 
-**Version:** 1.3
-**Last Updated:** June 2026
+**Version:** 1.4
+**Last Updated:** July 2026
 **Status:** Active
 
 ---
@@ -129,7 +129,7 @@ Live locations:
 
 They are backed up daily to the NAS with restricted permissions.
 
-- **Backup location:** `/mnt/data/backups/streamforge/env`
+- **Backup location:** `/mnt/streamforge-backups/env`
 - **Expected backup permissions:** `-rw-------`
 
 > **Verify on next backup review:** the restore commands in Step 4 assume the backup script writes per-stack files named `media.env`, `finance.env`, and `infrastructure.env`. Confirm this against the actual output of `backup-streamforge.sh` — if the script instead preserves `.env` as the filename inside per-stack subfolders, the restore commands need to match that structure exactly.
@@ -160,7 +160,7 @@ Important paths:
 ### Backup Location
 
 ```
-/mnt/data/backups/streamforge
+/mnt/streamforge-backups
 ├── appdata
 ├── db
 ├── env
@@ -238,11 +238,11 @@ This runs once per day at midday.
 
 ### Backup Logs
 
-Backup logs are stored in `/mnt/data/backups/streamforge/logs`, e.g. `backup-YYYY-MM-DD.log`.
+Backup logs are stored in `/mnt/streamforge-backups/logs`, e.g. `backup-YYYY-MM-DD.log`.
 
 ```bash
-ls -lah /mnt/data/backups/streamforge/logs
-tail -20 /mnt/data/backups/streamforge/logs/backup-YYYY-MM-DD.log
+ls -lah /mnt/streamforge-backups/logs
+tail -20 /mnt/streamforge-backups/logs/backup-YYYY-MM-DD.log
 ```
 
 A successful backup log should include:

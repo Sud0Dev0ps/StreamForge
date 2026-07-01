@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-BACKUP_DIR="/mnt/data/backups/streamforge"
+BACKUP_DIR="/mnt/streamforge-backups"
 LOG_DIR="$BACKUP_DIR/logs"
 LOG_FILE="$LOG_DIR/backup-$(date +%F).log"
 
