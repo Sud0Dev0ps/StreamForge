@@ -161,7 +161,7 @@ These services have low operational impact and can be restored after higher-prio
 
 **Location:** `/opt/appdata`
 
-**Backup location:** `/mnt/data/backups/streamforge/appdata`
+**Backup location:** `/mnt/streamforge-backups/appdata`
 
 **Target RTO:** 1–2 hours
 
@@ -178,7 +178,7 @@ These services have low operational impact and can be restored after higher-prio
 ~/StreamForge/environments/production/infrastructure/.env
 ```
 
-**Backup location:** `/mnt/data/backups/streamforge/env`
+**Backup location:** `/mnt/streamforge-backups/env`
 
 **Target RTO:** 1 hour
 
@@ -251,8 +251,8 @@ docker logs <container-name> --tail 20
 
 **Check backup logs:**
 ```bash
-ls -lah /mnt/data/backups/streamforge/logs
-tail -20 /mnt/data/backups/streamforge/logs/backup-YYYY-MM-DD.log
+ls -lah /mnt/streamforge-backups/logs
+tail -20 /mnt/streamforge-backups/logs/backup-YYYY-MM-DD.log
 ```
 
 ---
@@ -308,7 +308,7 @@ Homepage was used as the first controlled restore test.
 2. Confirmed live and backup directory structures matched
 3. Stopped Homepage container
 4. Renamed live config from `/opt/appdata/homepage` to `/opt/appdata/homepage.broken`
-5. Restored Homepage from `/mnt/data/backups/streamforge/appdata/homepage`
+5. Restored Homepage from `/mnt/streamforge-backups/appdata/homepage`
 6. Started Homepage
 7. Validated logs
 8. Confirmed dashboard loaded and cards worked
