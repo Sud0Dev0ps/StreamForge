@@ -12,7 +12,7 @@ This document describes the recovery procedures required to restore the StreamFo
 
 The objective is to restore service quickly and consistently while minimizing data loss.
 
-This runbook focuses on **how to recover**. For service priority, RTO, RPO, and recovery classification, see [`docs/service-classifications.md`]
+This runbook focuses on **how to recover**. For service priority, RTO, RPO, and recovery classification, see [`docs/service-classification.md`]
 
 ---
 
@@ -148,7 +148,7 @@ Important paths:
 ```
 /mnt/data/media
 /mnt/data/downloads
-/mnt/data/backups/streamforge
+/mnt/streamforge-backups
 ```
 
 > **Dependency note:** `dockerserver` depends on this NFS mount being available *before* most containers (media library paths, backup targets) can start correctly. Validate the NAS mount immediately after confirming the host is reachable — don't wait until after Docker is validated (see Step 1/2 ordering below).
@@ -187,10 +187,10 @@ The backup script performs:
 
 ### Appdata Backup
 
-Most application runtime data is mirrored from `/opt/appdata/` to `/mnt/data/backups/streamforge/appdata/` using `rsync` with Synology-compatible options:
+Most application runtime data is mirrored from `/opt/appdata/` to `/mnt/streamforge-backups/appdata/` using `rsync` with Synology-compatible options:
 
 ```bash
-rsync -a --no-owner --no-group /opt/appdata/ /mnt/data/backups/streamforge/appdata/
+rsync -a --no-owner --no-group /opt/appdata/ /mnt/streamforge-backups/appdata/
 ```
 
 This avoids ownership and group preservation issues caused by the current Synology NFS user mapping. (Carried forward from the Homepage restore test — see Observations below — this can change ownership on restore and should be checked against LinuxServer containers, which are more permission-sensitive.)
@@ -199,7 +199,7 @@ This avoids ownership and group preservation issues caused by the current Synolo
 
 Firefly III database data is backed up using a compressed logical MariaDB dump.
 
-- **Backup location:** `/mnt/data/backups/streamforge/db`
+- **Backup location:** `/mnt/streamforge-backups/db`
 - **Dump filename format:** `firefly-mariadb-YYYY-MM-DD.sql.gz`
 - **Example:** `firefly-mariadb-2026-xx-xx.sql.gz`
 
@@ -212,13 +212,13 @@ The dump is created from inside the MariaDB container using the database variabl
 Validate that the dump exists:
 
 ```bash
-ls -lh /mnt/data/backups/streamforge/db/
+ls -lh /mnt/streamforge-backups/db/
 ```
 
 Validate gzip integrity:
 
 ```bash
-gzip -t /mnt/data/backups/streamforge/db/firefly-mariadb-$(date +%F).sql.gz
+gzip -t /mnt/streamforge-backups/db/firefly-mariadb-$(date +%F).sql.gz
 echo $?
 ```
 
@@ -251,7 +251,7 @@ A successful backup log should include:
 === StreamForge Backup Started ===
 Backing up /opt/appdata...
 Backing up MariaDB database...
-MariaDB backup created: /mnt/data/backups/streamforge/db/firefly-mariadb-YYYY-MM-DD.sql.gz
+MariaDB backup created: /mnt/streamforge-backups/db/firefly-mariadb-YYYY-MM-DD.sql.gz
 Backing up .env files...
 Backing up compose files...
 Backing up documentation...
@@ -331,7 +331,7 @@ docker ps
 ```bash
 ls -lah /mnt/data/media
 ls -lah /mnt/data/downloads
-ls -lah /mnt/data/backups/streamforge
+ls -lah /mnt/streamforge-backups
 ```
 
 **Success criteria:** media, downloads, and backup folders are all visible.
@@ -364,14 +364,14 @@ ls -lah environments/production/infrastructure/docker-compose.yml
 
 ### Step 4 — Restore Production Environment Files
 
-Restore `.env` files from backup (`/mnt/data/backups/streamforge/env`) to their live locations:
+Restore `.env` files from backup (`/mnt/streamforge-backups/env`) to their live locations:
 
 ```bash
-cp /mnt/data/backups/streamforge/env/media.env \
+cp /mnt/streamforge-backups/env/media.env \
   ~/StreamForge/environments/production/media/.env
-cp /mnt/data/backups/streamforge/env/finance.env \
+cp /mnt/streamforge-backups/env/finance.env \
   ~/StreamForge/environments/production/finance/.env
-cp /mnt/data/backups/streamforge/env/infrastructure.env \
+cp /mnt/streamforge-backups/env/infrastructure.env \
   ~/StreamForge/environments/production/infrastructure/.env
 ```
 
@@ -403,7 +403,7 @@ git check-ignore -v environments/production/infrastructure/.env
 ### Step 5 — Restore Application Configuration
 
 ```bash
-sudo rsync -avh /mnt/data/backups/streamforge/appdata/ /opt/appdata/
+sudo rsync -avh /mnt/streamforge-backups/appdata/ /opt/appdata/
 ```
 
 Validate:
@@ -498,9 +498,9 @@ docker logs mariadb --tail 20
 Confirm the dump exists and is intact:
 
 ```bash
-ls -lh /mnt/data/backups/streamforge/db/
+ls -lh /mnt/streamforge-backups/db/
 
-gzip -t /mnt/data/backups/streamforge/db/firefly-mariadb-YYYY-MM-DD.sql.gz
+gzip -t /mnt/streamforge-backups/db/firefly-mariadb-YYYY-MM-DD.sql.gz
 echo $?
 ```
 
@@ -517,7 +517,7 @@ set +a
 Restore the dump into the MariaDB container:
 
 ```bash
-zcat /mnt/data/backups/streamforge/db/firefly-mariadb-YYYY-MM-DD.sql.gz | \
+zcat /mnt/streamforge-backups/db/firefly-mariadb-YYYY-MM-DD.sql.gz | \
   docker exec -i mariadb mariadb \
   -u"$MYSQL_USER" \
   -p"$MYSQL_PASSWORD" \
@@ -591,7 +591,7 @@ Recovery is not complete until the user-facing service works.
 **Objective:** Validate backup and recovery process using a low-risk service.
 
 **Procedure:**
-1. Confirmed backup existed: `/mnt/data/backups/streamforge/appdata/homepage`
+1. Confirmed backup existed: `/mnt/streamforge-backups/appdata/homepage`
 2. Confirmed live configuration existed: `/opt/appdata/homepage`
 3. Stopped Homepage container
 4. Renamed live configuration: `/opt/appdata/homepage` → `/opt/appdata/homepage.broken`
@@ -614,14 +614,14 @@ Recovery is not complete until the user-facing service works.
 2. Confirmed finance `.env` contains required database variables: `MYSQL_DATABASE`, `MYSQL_USER`, `MYSQL_PASSWORD`
 3. Added MariaDB dump backup to the StreamForge backup script
 4. Ran the backup script manually
-5. Confirmed dump file was created under `/mnt/data/backups/streamforge/db`
+5. Confirmed dump file was created under `/mnt/streamforge-backups/db`
 6. Validated gzip integrity using `gzip -t`
 7. Confirmed full backup script completed successfully
 
 **Result:** ✅ SUCCESS (backup creation and integrity only)
 
 ```bash
-gzip -t /mnt/data/backups/streamforge/db/firefly-mariadb-2026-xx-xx.sql.gz
+gzip -t /mnt/streamforge-backups/db/firefly-mariadb-2026-xx-xx.sql.gz
 echo $?
 # 0
 ```
@@ -643,20 +643,20 @@ docker ps
 docker logs <container-name> --tail 20
 
 # Backup logs
-ls -lah /mnt/data/backups/streamforge/logs
-tail -20 /mnt/data/backups/streamforge/logs/backup-YYYY-MM-DD.log
+ls -lah /mnt/streamforge-backups/logs
+tail -20 /mnt/streamforge-backups/logs/backup-YYYY-MM-DD.log
 
 # Appdata size
 du -sh /opt/appdata
 
 # Backup size
-du -sh /mnt/data/backups/streamforge/appdata
+du -sh /mnt/streamforge-backups/appdata
 
 # Database backup files
-ls -lh /mnt/data/backups/streamforge/db/
+ls -lh /mnt/streamforge-backups/db/
 
 # Validate current day's database dump
-gzip -t /mnt/data/backups/streamforge/db/firefly-mariadb-$(date +%F).sql.gz
+gzip -t /mnt/streamforge-backups/db/firefly-mariadb-$(date +%F).sql.gz
 echo $?
 ```
 
@@ -670,7 +670,6 @@ echo $?
 - Add offsite backups
 - Configure Synology Hyper Backup
 - Investigate Snapshot Replication
-- Create a dedicated StreamForge backup NAS share
 - Add monitoring and alerting
 - Add service health checks
 - Create an Ansible rebuild playbook
