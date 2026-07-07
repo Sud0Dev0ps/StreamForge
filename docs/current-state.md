@@ -1,155 +1,264 @@
-# Current State
+# StreamForge — Current State
+
+**Last Updated:** July 2026
+**Status:** Active
 
 ---
 
-# Production Server
+## Purpose
 
-## System Info
+This document describes the current operating state of the StreamForge platform. It provides a clear snapshot of what is running, where key configuration lives and which areas are still planned for future improvement.
 
-* **OS:** Ubuntu 20.04.6 LTS
-* **CPU:** AMD Ryzen 5 PRO 2400G @ 3.6 GHz
-* **RAM:** 24GB (Swap: 8GB)
-* **Disk:** `/dev/nvme0n1p2` — 234G total, 25G used (12%)
+Detailed recovery procedures are documented separately in [`docs/disaster-recovery.md`](disaster-recovery.md).
 
 ---
 
-## Running Containers
+## Table of Contents
 
-### Management
-* Dockhand → 3000
-* Homepage → 3001
+- [Production Server](#production-server)
+- [Production Compose Projects](#production-compose-projects)
+- [Running Services](#running-services)
+- [Repository Layout](#repository-layout)
+- [Runtime Configuration](#runtime-configuration)
+- [Storage](#storage)
+- [Backups](#backups)
+- [Git Workflow](#git-workflow)
+- [Current Operational State](#current-operational-state)
+- [Accepted Current Gaps](#accepted-current-gaps)
+- [Validation Commands](#validation-commands)
+
+---
+
+## Production Server
+
+| Item | Current State |
+|---|---|
+| Hostname | `dockerserver` |
+| Hardware | Lenovo ThinkCentre M725s |
+| CPU | AMD Ryzen 5 PRO 2400G |
+| RAM | 24GB |
+| Operating System | Ubuntu 22.04.5 LTS |
+| Codename | jammy |
+| Kernel | 5.15.x |
+| Primary IP | Managed on the local LAN |
+| Runtime | Docker Engine + Docker Compose |
+
+---
+
+## Production Compose Projects
+
+StreamForge production services are organized into three Docker Compose projects.
+
+| Project | Purpose | Expected Containers |
+|---|---|---|
+| `media` | Media services and automation | 10 |
+| `infrastructure` | Platform management services | 1 |
+| `finance` | Personal finance services | 2 |
+
+**Expected validation command:**
+
+```bash
+docker compose ls
+```
+
+**Expected output:**
+
+```text
+finance             running(2)
+infrastructure      running(1)
+media               running(10)
+```
+
+---
+
+## Running Services
 
 ### Media Stack
-* Plex (no external port exposed via Docker)
 
-* **Sonarr**
-  * Port: 8989
-  * Config: `/opt/docker/sonarr → /config`
-  * Media: `/mnt/data → /data`
-  * Storage: bind mounts
+| Service | Purpose | Status |
+|---|---|---|
+| Plex | Primary media server | Running |
+| Jellyfin | Secondary media server | Running |
+| Sonarr | TV management | Running |
+| Radarr | Movie management | Running |
+| Prowlarr | Indexer management | Running |
+| NZBGet | Usenet downloader | Running |
+| Seerr | Request management | Running |
+| Homepage | Dashboard | Running |
+| Navidrome | Music streaming | Running |
+| MeTube | Media download utility | Running |
 
-* Radarr → 7878
+### Infrastructure Stack
 
-* Prowlarr → 9696
+| Service | Purpose | Status |
+|---|---|---|
+| Dockhand | Docker management | Running |
 
-* NZBGet → 6789
+### Finance Stack
 
-* Overseerr → 5055
-
-* Navidrome → 4533
-
-### Personal
-* **Firefly**
-  * Port: 8090
-  * Upload storage: anonymous Docker volume
-  * Risk: data location not clearly managed
-
-* **MariaDB (Firefly DB)**
-  * Port: internal (3306)
-  * Data: `firefly_mariadb` (named volume)
-  * Storage: named volume
+| Service | Purpose | Status |
+|---|---|---|
+| Firefly III | Personal finance tracking | Running |
+| MariaDB | Firefly III database | Running |
 
 ---
 
-## On-Demand Containers
-The following services are intentionally stopped and started only when needed:
-* metube
-* pyload-ng
-* jellyfin
+## Repository Layout
 
-These are preserved for configuration but are not part of the always-on stack.
+Production Compose files:
 
----
+```text
+environments/production/media/docker-compose.yml
+environments/production/infrastructure/docker-compose.yml
+environments/production/finance/docker-compose.yml
+```
 
-## Docker Volumes
+Environment templates:
 
-### Named Volumes
-* dockhand_dockhand_data
-* firefly_firefly_iii_upload
-* firefly_mariadb_data
-* freshrss_freshrss_data
-* freshrss_freshrss_extensions
+```text
+environments/production/media/env.example
+environments/production/infrastructure/env.example
+environments/production/finance/env.example
+```
 
-### Anonymous Volumes
-* 6f703fbd3c1c597d...
-* 7c5c2dc20b6bbe2f...
-* a7df561a19228794...
-
-**Note:**
-Anonymous volumes are not clearly mapped to services and should be migrated to named volumes.
+Actual `.env` files are excluded from Git and stored only on the relevant host.
 
 ---
 
-# Networking
-* Multiple services exposed via host ports
-* No reverse proxy or ingress layer
+## Runtime Configuration
+
+Application runtime configuration is stored outside Git under:
+
+```text
+/opt/appdata
+```
+
+This includes application configuration and persistent service data for the production containers.
+
+The Git repository stores Compose definitions and documentation only — it does not store live application state or secrets.
 
 ---
 
-# Storage
-* Synology share:
-  `192.168.10.2:/volume1/data`
-  8.8T total / 4.9T used / 3.9T free (56%)
-  Mounted at `/mnt/data`
+## Storage
+
+StreamForge uses Synology NAS storage for media, downloads, and backups.
+
+| Mount | Purpose |
+|---|---|
+| `/mnt/data` | Media and download storage |
+| `/mnt/streamforge-backups` | Dedicated StreamForge backup destination |
+
+The media library is intentionally not fully backed up at this stage.
 
 ---
 
-# Staging Server
+## Backups
 
-## Overview
-* Ubuntu laptop
-* Clean Docker installation
-* Used for testing before production deployment
-* No persistent services (baseline state)
+Backups are performed by:
 
-## System Info
-* **OS:** Ubuntu 24.04.4 LTS
-* **CPU:** Intel i5-9300H @ 3.6 GHz
-* **RAM:** 8GB (Swap: 4GB)
-* **Disk:** `/dev/nvme0n1p2` — 468G
+```text
+scripts/backup-streamforge.sh
+```
 
----
+**Current backup destination:** `/mnt/streamforge-backups`
 
-# Observations / Issues
+The backup script currently includes:
 
-* No orchestration
-* No Infrastructure as Code
-* Mixed container sources (linuxserver, ghcr, etc.)
-* Multiple unused containers
-* Large number of exposed ports
-* No central logging or monitoring
+- Most `/opt/appdata` service configuration
+- Production `.env` files
+- Docker Compose files
+- StreamForge documentation
+- Firefly III MariaDB logical dump
+- Backup logs
 
----
+**Known backup limitations:**
 
-# Risks
-* Difficult to rebuild from scratch
-* Configurations not tracked in Git
-* Potential security exposure via open ports
+- Dockhand appdata is currently excluded
+- Raw MariaDB data files are excluded by design
+- MariaDB is backed up using a logical dump instead
+- Backup retention and pruning still need improvement
+- Offsite backup has not yet been implemented
 
 ---
 
-# Unknowns
-* Exact volume mappings per container
-* Original container run commands
-* Environment variables
-* Startup configuration
-* No defined backup strategy
+## Git Workflow
+
+**MacBook → GitHub → Production Server**
+
+1. Edit on the MacBook.
+2. Review changes locally.
+3. Commit to Git.
+4. Push to GitHub.
+5. Pull on the production server.
+6. Apply Compose changes where required.
+7. Validate containers and service health.
+
+Production should avoid untracked manual configuration changes wherever practical.
 
 ---
 
-# Rebuild Assessment
-Current system is **NOT reproducible** without manual effort.
+## Current Operational State
 
-### Requirements to Rebuild
-* Container configurations (missing)
-* Volume mappings (partially unknown)
-* Environment variables (unknown)
-* Startup configuration (unclear)
+StreamForge has completed its initial production migration.
 
-**Estimated difficulty:** HIGH
+**Completed:**
+
+- Production Compose stacks created
+- Media stack migrated
+- Infrastructure stack migrated
+- Finance stack migrated
+- Homepage restore test completed
+- MariaDB backup creation added
+- Dedicated NAS backup share created
+- Production server upgraded from Ubuntu 20.04 to Ubuntu 22.04
+- Docker repository corrected to Ubuntu jammy packages
+- Public README refreshed
+
+**Current focus:**
+
+- Reverse proxy planning
+- Tailscale planning
+- Network segmentation planning
+- Backup retention and offsite backup planning
 
 ---
-# Goal
-Migrate to a fully reproducible system using:
-* Docker Compose
-* Git-managed configuration
+
+## Accepted Current Gaps
+
+| Area | Status |
+|---|---|
+| Reverse proxy | Planned |
+| Tailscale | Planned |
+| VLAN segmentation | Planned |
+| Backup retention/pruning | Open |
+| Offsite backup | Open |
+| Dockhand backup strategy | Open |
+| MariaDB restore test | Open |
+| Central monitoring/logging | Future |
+| NAS permissions hardening | Future |
+| Ubuntu 24.04 upgrade | Deferred |
+
+---
+
+## Validation Commands
+
+Useful current-state validation commands:
+
+```bash
+lsb_release -a
+hostnamectl
+uptime
+systemctl --failed
+docker compose ls
+docker ps --format "table {{.Names}}\t{{.Status}}"
+findmnt /mnt/data
+findmnt /mnt/streamforge-backups
+```
+
+A healthy baseline should show:
+
+- Ubuntu 22.04 LTS
+- No failed systemd services
+- `finance`, `infrastructure`, and `media` Compose projects running
+- Expected containers running
+- NAS mounts available
