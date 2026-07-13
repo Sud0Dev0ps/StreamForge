@@ -1,0 +1,4 @@
+http://homepage.streamforge.internal {
+    reverse_proxy homepage:3000
+}
+

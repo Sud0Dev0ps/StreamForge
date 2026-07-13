@@ -1,0 +1,19 @@
+services:
+
+  caddy:
+    image: caddy:2
+    container_name: caddy
+    ports:
+      - ${SERVER_IP}:80:80
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ${CADDY_DATA_PATH}:/data
+      - ${CADDY_CONFIG_PATH}:/config
+    restart: unless-stopped
+    networks:
+      - streamforge_proxy_prod
+
+networks:
+  streamforge_proxy_prod:
+    name: streamforge_proxy_prod
+
