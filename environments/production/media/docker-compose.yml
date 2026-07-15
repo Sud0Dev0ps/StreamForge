@@ -56,6 +56,7 @@ services:
     restart: unless-stopped
     networks:
       - media_network_prod
+      - streamforge_proxy_prod
 
   nzbget:
     image: lscr.io/linuxserver/nzbget:latest
@@ -102,6 +103,7 @@ services:
     restart: unless-stopped
     networks:
       - media_network_prod
+      - streamforge_proxy_prod
 
   prowlarr:
     image: lscr.io/linuxserver/prowlarr:latest

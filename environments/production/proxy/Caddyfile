@@ -2,3 +2,10 @@ http://homepage.streamforge.internal {
     reverse_proxy homepage:3000
 }
 
+http://seerr.streamforge.internal {
+    reverse_proxy seerr:5055
+}
+
+http://navidrome.streamforge.internal {
+    reverse_proxy navidrome:4533
+}
