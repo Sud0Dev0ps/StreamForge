@@ -73,6 +73,7 @@ services:
     restart: unless-stopped
     networks:
       - media_network_prod
+      - streamforge_proxy_prod
 
   plex:
     image: lscr.io/linuxserver/plex:latest
@@ -119,6 +120,7 @@ services:
     restart: unless-stopped
     networks:
       - media_network_prod
+      - streamforge_proxy_prod
       
   radarr:
     image: lscr.io/linuxserver/radarr:latest
@@ -135,6 +137,7 @@ services:
     restart: unless-stopped
     networks:
       - media_network_prod
+      - streamforge_proxy_prod
 
   sonarr:
     image: lscr.io/linuxserver/sonarr:latest
@@ -151,6 +154,7 @@ services:
     restart: unless-stopped
     networks:
       - media_network_prod
+      - streamforge_proxy_prod
 
 networks:
   media_network_prod:
