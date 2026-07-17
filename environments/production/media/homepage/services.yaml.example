@@ -1,0 +1,80 @@
+---
+- Network:
+    - UniFi Controller:
+        icon: unifi.png
+        href: "https://<unifi-controller-ip>"
+        description: UniFi
+
+    - Synology NAS:
+        icon: synology.png
+        href: "http://<nas-ip>:5000"
+        description: Synology
+
+- Media:
+    - Plex:
+        icon: plex.png
+        href: "http://<server-ip>:32400/web"
+        container: plex
+        server: my-docker
+
+    - Jellyfin:
+        icon: jellyfin.png
+        href: "http://<server-ip>:8096"
+        container: jellyfin
+        server: my-docker
+
+    - Seerr:
+        icon: overseerr.png
+        href: "http://seerr.streamforge.internal"
+        container: seerr
+        server: my-docker
+
+    - Navidrome:
+        icon: navidrome.png
+        href: "http://navidrome.streamforge.internal"
+        container: navidrome
+        server: my-docker
+
+- Downloads:
+    - Sonarr:
+        icon: sonarr.png
+        href: "http://sonarr.streamforge.internal"
+        container: sonarr
+        server: my-docker
+
+    - Radarr:
+        icon: radarr.png
+        href: "http://radarr.streamforge.internal"
+        container: radarr
+        server: my-docker
+
+    - Prowlarr:
+        icon: prowlarr.png
+        href: "http://prowlarr.streamforge.internal"
+        container: prowlarr
+        server: my-docker
+
+    - NZBGet:
+        icon: nzbget.png
+        href: "http://nzbget.streamforge.internal"
+        container: nzbget
+        server: my-docker
+
+    - MeTube:
+        icon: metube.png
+        href: "http://<server-ip>:8081"
+        container: metube
+        server: my-docker
+
+- Management:
+    - Dockhand:
+        icon: docker.png
+        href: "http://<server-ip>:3000"
+        container: dockhand
+        server: my-docker
+
+    - Firefly III:
+        icon: firefly.png
+        href: "http://<server-ip>:8090"
+        container: firefly
+        server: my-docker
