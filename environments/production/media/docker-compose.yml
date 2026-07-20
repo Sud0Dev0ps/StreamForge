@@ -32,6 +32,7 @@ services:
     restart: unless-stopped
     networks:
       - media_network_prod
+      - streamforge_proxy_prod
 
   metube:
     image: ghcr.io/alexta69/metube
@@ -43,6 +44,7 @@ services:
     restart: unless-stopped
     networks:
       - media_network_prod
+      - streamforge_proxy_prod
   
   navidrome:
     image: deluan/navidrome:latest

@@ -25,3 +25,11 @@ http://prowlarr.streamforge.internal {
 http://nzbget.streamforge.internal {
     reverse_proxy nzbget:6789
 }
+
+http://jellyfin.streamforge.internal {
+    reverse_proxy jellyfin:8096
+}
+
+http://metube.streamforge.internal {
+    reverse_proxy metube:8081
+}
