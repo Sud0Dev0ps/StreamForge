@@ -19,7 +19,7 @@
 
     - Jellyfin:
         icon: jellyfin.png
-        href: "http://<server-ip>:8096"
+        href: "http://jellyfin.streamforge.internal"
         container: jellyfin
         server: my-docker
 
@@ -62,7 +62,7 @@
 
     - MeTube:
         icon: metube.png
-        href: "http://<server-ip>:8081"
+        href: "http://metube.streamforge.internal"
         container: metube
         server: my-docker
 
