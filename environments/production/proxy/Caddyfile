@@ -33,3 +33,11 @@ http://jellyfin.streamforge.internal {
 http://metube.streamforge.internal {
     reverse_proxy metube:8081
 }
+
+http://firefly.streamforge.internal {
+    reverse_proxy firefly:8080
+}
+
+http://dockhand.streamforge.internal {
+    reverse_proxy dockhand:3000
+}

@@ -33,7 +33,10 @@ services:
       - ${SERVER_IP}:${FIREFLY_PORT}:8080
     networks:
       - finance_network_prod
+      - streamforge_proxy_prod
 
 networks:
   finance_network_prod:
+    external: true
+  streamforge_proxy_prod:
     external: true
