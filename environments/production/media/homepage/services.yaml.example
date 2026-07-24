@@ -69,12 +69,12 @@
 - Management:
     - Dockhand:
         icon: docker.png
-        href: "http://<server-ip>:3000"
+        href: "http://dockhand.streamforge.internal"
         container: dockhand
         server: my-docker
 
     - Firefly III:
         icon: firefly.png
-        href: "http://<server-ip>:8090"
+        href: "http://firefly.streamforge.internal"
         container: firefly
         server: my-docker
