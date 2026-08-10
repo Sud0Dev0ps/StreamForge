@@ -1,15 +1,17 @@
 # StreamForge — Current State
 
-**Last Updated:** July 2026
+**Last Updated:** August 2026
 **Status:** Active
+
+**Related documents:** **Related documents:** [Disaster Recovery Runbook](disaster-recovery.md) · [Service Classification](service-classification.md)
 
 ---
 
 ## Purpose
 
-This document describes the current operating state of the StreamForge platform. It provides a clear snapshot of what is running, where key configuration lives and which areas are still planned for future improvement.
+This document describes the current operating state of the StreamForge platform. It provides a clear snapshot of what is running, where key configuration lives, how internal services are accessed and which areas are still planned for future improvement.
 
-Detailed recovery procedures are documented separately in [`docs/disaster-recovery.md`](disaster-recovery.md).
+Detailed recovery procedures are documented separately in [`docs/disaster-recovery-runbook.md`](docs/disaster-recovery-runbook.md).
 
 ---
 
@@ -20,6 +22,7 @@ Detailed recovery procedures are documented separately in [`docs/disaster-recove
 - [Running Services](#running-services)
 - [Repository Layout](#repository-layout)
 - [Runtime Configuration](#runtime-configuration)
+- [Internal DNS and Reverse Proxy](#internal-dns-and-reverse-proxy)
 - [Storage](#storage)
 - [Backups](#backups)
 - [Git Workflow](#git-workflow)
@@ -47,26 +50,28 @@ Detailed recovery procedures are documented separately in [`docs/disaster-recove
 
 ## Production Compose Projects
 
-StreamForge production services are organized into three Docker Compose projects.
+StreamForge production services are organized into four Docker Compose projects.
 
 | Project | Purpose | Expected Containers |
 |---|---|---|
-| `media` | Media services and automation | 10 |
-| `infrastructure` | Platform management services | 1 |
-| `finance` | Personal finance services | 2 |
+| media | Media services and automation | 10 |
+| infrastructure | Platform management services | 1 |
+| finance | Personal finance services | 2 |
+| proxy | Internal reverse proxy | 1 |
 
-**Expected validation command:**
+Expected validation command:
 
 ```bash
 docker compose ls
 ```
 
-**Expected output:**
+Expected state:
 
-```text
+```
 finance             running(2)
 infrastructure      running(1)
 media               running(10)
+proxy               running(1)
 ```
 
 ---
@@ -101,24 +106,38 @@ media               running(10)
 | Firefly III | Personal finance tracking | Running |
 | MariaDB | Firefly III database | Running |
 
+### Proxy Stack
+
+| Service | Purpose | Status |
+|---|---|---|
+| Caddy | Internal reverse proxy | Running |
+
 ---
 
 ## Repository Layout
 
 Production Compose files:
 
-```text
+```
 environments/production/media/docker-compose.yml
 environments/production/infrastructure/docker-compose.yml
 environments/production/finance/docker-compose.yml
+environments/production/proxy/docker-compose.yml
+```
+
+Proxy routing configuration:
+
+```
+environments/production/proxy/Caddyfile
 ```
 
 Environment templates:
 
-```text
+```
 environments/production/media/env.example
 environments/production/infrastructure/env.example
 environments/production/finance/env.example
+environments/production/proxy/env.example
 ```
 
 Actual `.env` files are excluded from Git and stored only on the relevant host.
@@ -129,13 +148,91 @@ Actual `.env` files are excluded from Git and stored only on the relevant host.
 
 Application runtime configuration is stored outside Git under:
 
-```text
+```
 /opt/appdata
 ```
 
 This includes application configuration and persistent service data for the production containers.
 
-The Git repository stores Compose definitions and documentation only — it does not store live application state or secrets.
+The Git repository stores infrastructure definitions, reusable configuration examples, scripts and documentation. It does not store live application state or secrets.
+
+---
+
+## Internal DNS and Reverse Proxy
+
+StreamForge uses UniFi DNS and Caddy to provide readable internal hostnames for suitable browser-facing services.
+
+The standard request path is:
+
+```
+LAN client
+  ↓
+UniFi DHCP
+  ↓
+UniFi DNS
+  ├─ StreamForge internal record → 192.168.10.10
+  └─ Public DNS request → NextDNS
+  ↓
+Caddy — 192.168.10.10:80
+  ↓
+streamforge_proxy_prod
+  ↓
+Application container
+```
+
+StreamForge internal services use the `.streamforge.internal` namespace.
+
+### Current Internal Hostnames
+
+| Service | Internal Hostname | Caddy Backend |
+|---|---|---|
+| Homepage | `homepage.streamforge.internal` | `homepage:3000` |
+| Seerr | `seerr.streamforge.internal` | `seerr:5055` |
+| Navidrome | `navidrome.streamforge.internal` | `navidrome:4533` |
+| Sonarr | `sonarr.streamforge.internal` | `sonarr:8989` |
+| Radarr | `radarr.streamforge.internal` | `radarr:7878` |
+| Prowlarr | `prowlarr.streamforge.internal` | `prowlarr:9696` |
+| NZBGet | `nzbget.streamforge.internal` | `nzbget:6789` |
+| Jellyfin | `jellyfin.streamforge.internal` | `jellyfin:8096` |
+| MeTube | `metube.streamforge.internal` | `metube:8081` |
+| Firefly III | `firefly.streamforge.internal` | `firefly:8080` |
+| Dockhand | `dockhand.streamforge.internal` | `dockhand:3000` |
+
+UniFi owns the private DNS records for these hostnames. Public DNS requests continue upstream to NextDNS.
+
+Caddy is currently LAN-only and listens on HTTP port 80.
+Public DNS, internet exposure, port forwarding, and internal HTTPS/TLS are not part of the current deployment.
+
+The proxied applications and Caddy share the Docker network:
+
+```
+streamforge_proxy_prod
+```
+
+Only applications that require reverse-proxy connectivity are deliberately attached to this network.
+
+Existing direct IP-and-port access remains available as a rollback and troubleshooting path.
+
+### Intentional Exceptions
+
+**Plex**
+
+Plex remains on Docker host networking and is intentionally accessed directly rather than through Caddy.
+
+
+- Plex uses `network_mode: host`.
+- Plex is healthy through its existing direct access path.
+- Plex has existing LAN and secure-connection behaviour that should not be changed solely to provide a friendlier browser URL.
+- Adding a reverse-proxy route would introduce an exception requiring Caddy to reach the host-networked service rather than a container on `streamforge_proxy_prod`.
+- The current operational benefit does not justify the additional complexity.
+
+Plex therefore remains an intentional architectural exception rather than incomplete reverse-proxy work.
+
+**MariaDB**
+
+MariaDB is not an HTTP application and does not require reverse-proxy connectivity.
+
+It remains attached only to the finance application network and is deliberately excluded from `streamforge_proxy_prod`.
 
 ---
 
@@ -156,11 +253,11 @@ The media library is intentionally not fully backed up at this stage.
 
 Backups are performed by:
 
-```text
+```
 scripts/backup-streamforge.sh
 ```
 
-**Current backup destination:** `/mnt/streamforge-backups`
+Current backup destination: `/mnt/streamforge-backups`
 
 The backup script currently includes:
 
@@ -171,7 +268,7 @@ The backup script currently includes:
 - Firefly III MariaDB logical dump
 - Backup logs
 
-**Known backup limitations:**
+Known backup limitations:
 
 - Dockhand appdata is currently excluded
 - Raw MariaDB data files are excluded by design
@@ -185,13 +282,13 @@ The backup script currently includes:
 
 **MacBook → GitHub → Production Server**
 
-1. Edit on the MacBook.
+1. Edit configuration or documentation on the MacBook.
 2. Review changes locally.
 3. Commit to Git.
 4. Push to GitHub.
-5. Pull on the production server.
-6. Apply Compose changes where required.
-7. Validate containers and service health.
+5. Pull changes on the production server.
+6. Apply Compose or service-specific changes where required.
+7. Validate infrastructure and service health.
 
 Production should avoid untracked manual configuration changes wherever practical.
 
@@ -199,7 +296,7 @@ Production should avoid untracked manual configuration changes wherever practica
 
 ## Current Operational State
 
-StreamForge has completed its initial production migration.
+StreamForge has completed its initial production migration and internal reverse-proxy rollout.
 
 **Completed:**
 
@@ -212,12 +309,20 @@ StreamForge has completed its initial production migration.
 - Dedicated NAS backup share created
 - Production server upgraded from Ubuntu 20.04 to Ubuntu 22.04
 - Docker repository corrected to Ubuntu jammy packages
-- Public README refreshed
+- Caddy reverse proxy deployed
+- Dedicated proxy Compose project deployed
+- Shared `streamforge_proxy_prod` network deployed
+- Central internal DNS configured through UniFi
+- `.streamforge.internal` namespace deployed for suitable web services
+- Direct application access preserved as a rollback path
+- Homepage links migrated to validated internal hostnames
+- Plex reviewed and deliberately retained as a host-networked exception
+- MariaDB deliberately excluded from the proxy network
 
 **Current focus:**
 
-- Reverse proxy planning
-- Tailscale planning
+- Reverse proxy and internal DNS documentation
+- Tailscale architecture planning
 - Network segmentation planning
 - Backup retention and offsite backup planning
 
@@ -227,9 +332,10 @@ StreamForge has completed its initial production migration.
 
 | Area | Status |
 |---|---|
-| Reverse proxy | Planned |
 | Tailscale | Planned |
 | VLAN segmentation | Planned |
+| Internal HTTPS/TLS | Deferred |
+| Plex reverse proxy | Intentionally not implemented |
 | Backup retention/pruning | Open |
 | Offsite backup | Open |
 | Dockhand backup strategy | Open |
@@ -251,6 +357,7 @@ uptime
 systemctl --failed
 docker compose ls
 docker ps --format "table {{.Names}}\t{{.Status}}"
+docker network inspect streamforge_proxy_prod
 findmnt /mnt/data
 findmnt /mnt/streamforge-backups
 ```
@@ -259,6 +366,9 @@ A healthy baseline should show:
 
 - Ubuntu 22.04 LTS
 - No failed systemd services
-- `finance`, `infrastructure`, and `media` Compose projects running
+- `finance`, `infrastructure`, `media`, and `proxy` Compose projects running
 - Expected containers running
+- `streamforge_proxy_prod` available
+- Caddy and the expected proxied applications attached to the proxy network
+- Plex and MariaDB absent from the proxy network
 - NAS mounts available
