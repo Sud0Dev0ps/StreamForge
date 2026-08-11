@@ -23,7 +23,7 @@ This runbook focuses on **how to recover**. For service priority, RTO, RPO, and 
 | Backup type | Restore proven? |
 |---|---|
 | Homepage (appdata) | Yes — successful restore test June 2026 |
-| MariaDB logical dump (Firefly III) |  **No** — dump integrity validated (gzip), but a real restore has **not** been performed. Treat Step 10 as untested until a dry run is completed. |
+| MariaDB logical dump (Firefly III) |  **No** — dump integrity validated (gzip), but a real restore has **not** been performed. Treat Step 11 as untested until a dry run is completed. |
 
 Until the MariaDB restore path is exercised end-to-end in a non-production test, it should be considered a **documented procedure**, not a **proven recovery capability**.
 
@@ -56,6 +56,7 @@ Current production state:
 | media | 10 |
 | finance | 2 |
 | infrastructure | 1 |
+| proxy | 1 |
 
 Expected output:
 
@@ -63,6 +64,7 @@ Expected output:
 finance          running(2)
 infrastructure   running(1)
 media            running(10)
+proxy            running(1)
 ```
 
 Validate with:
@@ -109,7 +111,7 @@ Most application configuration under `/opt/appdata` is backed up using `rsync`. 
 - Current permissions are restrictive.
 - Ownership should not be changed casually while the service is healthy.
 
-Dockhand backup remains an accepted short-term risk. **There is currently no recovery path for Dockhand** — if it does not come back up cleanly in Step 7, it must be reconfigured manually from scratch.
+Dockhand backup remains an accepted short-term risk. **There is currently no recovery path for Dockhand** — if it does not come back up cleanly in Step 8, it must be reconfigured manually from scratch.
 
 ---
 
@@ -415,21 +417,25 @@ ls -lah /opt/appdata
 
 **Success criteria:** service directories exist under `/opt/appdata`, no obvious missing application folders, no restore errors reported by rsync.
 
-> **Important:** this step does **not** restore `/opt/appdata/mariadb/` or `/opt/appdata/dockhand/` — both are intentionally excluded. MariaDB will need to initialize fresh (Step 9) and Dockhand will need manual reconfiguration (Step 7).
+> **Important:** this step does **not** restore `/opt/appdata/mariadb/` or `/opt/appdata/dockhand/` — both are intentionally excluded. MariaDB will need to initialize fresh (Step 10) and Dockhand will need manual reconfiguration (Step 8).
 
 ### Step 6 — Confirm Docker Networks
 
-Current production networks:
+StreamForge uses three externally managed application networks:
 
 - `media_network_prod`
 - `finance_network_prod`
 - `infra_network_prod`
 
+The shared reverse proxy network, `streamforge_proxy_prod`, is managed by the proxy Compose project and should not normally be created manually during recovery.
+
+Confirm the current network state:
+
 ```bash
 docker network ls
 ```
 
-If a required external network is missing, recreate it:
+If the application networks are missing, recreate them:
 
 ```bash
 docker network create media_network_prod
@@ -437,9 +443,36 @@ docker network create finance_network_prod
 docker network create infra_network_prod
 ```
 
-**Success criteria:** required Docker networks exist and compose stacks can attach to them.
+Do not manually create `streamforge_proxy_prod` during the standard recovery process. Starting the proxy Compose project in Step 7 creates this network with the stable name defined in Git.
 
-### Step 7 — Start Infrastructure Stack
+**Success criteria:** the three external application networks exist and are ready for their respective Compose stacks.
+
+### Step 7 — Start Proxy Stack
+
+Start the proxy project before the application stacks so that the shared `streamforge_proxy_prod` network exists before services attempt to attach to it.
+
+```bash
+cd ~/StreamForge/environments/production/proxy
+docker compose up -d
+docker compose ps
+docker logs caddy --tail 50
+```
+
+Confirm that the shared proxy network now exists:
+
+```bash
+docker network inspect streamforge_proxy_prod
+```
+
+**Success criteria:**
+
+- Caddy is running without a crash loop or critical configuration errors.
+- `streamforge_proxy_prod` exists.
+- Caddy is attached to `streamforge_proxy_prod`.
+
+At this stage Caddy may not yet be able to reach application backends because the dependent application stacks have not been started. This is expected during a full recovery.
+
+### Step 8 — Start Infrastructure Stack
 
 ```bash
 cd ~/StreamForge
@@ -452,7 +485,7 @@ docker logs dockhand --tail 20
 
 > Dockhand appdata is excluded from backup. If it does not recover cleanly, it must be reconfigured manually — there is currently no documented recovery path for this service's stored configuration.
 
-### Step 8 — Start Media Stack
+### Step 9 — Start Media Stack
 
 ```bash
 cd ~/StreamForge
@@ -469,7 +502,7 @@ docker logs nzbget --tail 20
 
 **Success criteria:** media containers are running, no crash loops, Homepage/Plex/automation services are accessible.
 
-### Step 9 — Start Finance Stack
+### Step 10 — Start Finance Stack
 
 Because `/opt/appdata/mariadb/` is excluded from the appdata backup, on a from-scratch rebuild this directory will not exist yet. Create it with the correct ownership **before** the container starts:
 
@@ -489,9 +522,9 @@ docker logs firefly --tail 20
 docker logs mariadb --tail 20
 ```
 
-**Success criteria:** Firefly III is running, MariaDB is running, no database startup errors. At this point MariaDB will be a fresh, empty database — proceed to Step 10 to restore data.
+**Success criteria:** Firefly III is running, MariaDB is running, no database startup errors. At this point MariaDB will be a fresh, empty database — proceed to next step to restore data.
 
-### Step 10 — Restore Firefly III MariaDB Database
+### Step 11 — Restore Firefly III MariaDB Database
 
 >**This procedure has not yet been proven with a real restore.** The dump's integrity has been validated with `gzip -t`, but the restore itself should be tested in a non-destructive way (e.g. against a disposable MariaDB container) before being relied upon during a real outage.
 
@@ -568,6 +601,15 @@ Recovery is not complete until the user-facing service works.
 - [ ] MariaDB dump exists
 - [ ] MariaDB dump passes gzip validation
 - [ ] Docker networks exist
+- [ ] Proxy stack running
+- [ ] `streamforge_proxy_prod` exists
+- [ ] Caddy is attached to `streamforge_proxy_prod`
+- [ ] Expected proxied applications are attached to `streamforge_proxy_prod`
+- [ ] Plex is absent from `streamforge_proxy_prod`
+- [ ] MariaDB is absent from `streamforge_proxy_prod`
+- [ ] Representative `.streamforge.internal` hostnames resolve through UniFi DNS
+- [ ] Representative services load through Caddy
+- [ ] Direct IP-and-port access remains available
 - [ ] Infrastructure stack running
 - [ ] Media stack running
 - [ ] Finance stack running
