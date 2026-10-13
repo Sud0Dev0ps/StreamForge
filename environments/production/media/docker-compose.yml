@@ -1,4 +1,20 @@
 services:
+  bazarr:
+    image: lscr.io/linuxserver/bazarr:latest
+    container_name: bazarr
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${BAZARR_CONFIG_PATH}:/config
+      - ${DATA_PATH}:/data
+    ports:
+      - ${BAZARR_PORT}:6767
+    restart: unless-stopped
+    networks:
+      - media_network_prod
+      - streamforge_proxy_prod
 
   homepage:
     image: ghcr.io/gethomepage/homepage:latest
