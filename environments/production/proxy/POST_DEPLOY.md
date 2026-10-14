@@ -295,6 +295,17 @@ If an internal proxy route fails:
 
 ---
 
+### Applying Caddyfile Changes
+
+After pulling changes that modify the bind-mounted `Caddyfile`, recreate or restart the Caddy container before validation.
+
+A running container may continue to reference the previous single-file bind mount after Git replaces the host file, causing `caddy reload` to report that the configuration is unchanged.
+
+```bash
+docker compose up -d --force-recreate caddy
+
+---
+
 ## Security Boundaries
 
 The reverse proxy does not make StreamForge publicly accessible.
