@@ -63,6 +63,36 @@ Follow the configuration steps below, then use the verification checklist to con
 
 ---
 
+### Bazarr (Subtitles)
+
+**Access:** `http://production-ip:6767`
+
+#### Connect Applications
+
+**Sonarr:**
+- Host: `sonarr`
+- Port: `8989`
+- Add the Sonarr API key
+- Test connection and save
+
+**Radarr:**
+- Host: `radarr`
+- Port: `7878`
+- Add the Radarr API key
+- Test connection and save
+
+Bazarr, Sonarr, and Radarr all use the shared `/data` path, so no path mappings are required.
+
+#### Subtitle Configuration
+
+- Enable English subtitles
+- Create an `English` language profile
+- Apply the profile to both Series and Movies
+- Configure at least one subtitle provider
+- Confirm a manual subtitle search and download succeeds
+
+---
+
 ### Prowlarr (Indexer Manager)
 
 **Access:** `http://production-ip:9696`
@@ -316,6 +346,16 @@ Configure and test:
 - [ ] Download path `/data/downloads` accessible
 - [ ] Indexers synced from Prowlarr
 - [ ] Test download imported successfully
+
+### Bazarr
+
+- [ ] UI accessible at `http://production-ip:6767`
+- [ ] Sonarr connection successful
+- [ ] Radarr connection successful
+- [ ] English language profile configured
+- [ ] Subtitle provider configured
+- [ ] Test subtitle downloaded successfully
+- [ ] Subtitle visible in Plex/Jellyfin
 
 ### Seerr
 

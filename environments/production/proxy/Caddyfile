@@ -18,6 +18,10 @@ http://radarr.streamforge.internal {
     reverse_proxy radarr:7878
 }
 
+http://bazarr.streamforge.internal {
+    reverse_proxy bazarr:6767
+}
+
 http://prowlarr.streamforge.internal {
     reverse_proxy prowlarr:9696
 }

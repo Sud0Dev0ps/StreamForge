@@ -48,6 +48,12 @@
         container: radarr
         server: my-docker
 
+    - Bazarr:
+        icon: bazarr.png
+        href: "http://bazarr.streamforge.internal"
+        container: bazarr
+        server: my-docker
+
     - Prowlarr:
         icon: prowlarr.png
         href: "http://prowlarr.streamforge.internal"

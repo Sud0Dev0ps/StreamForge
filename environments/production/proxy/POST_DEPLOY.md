@@ -52,6 +52,7 @@ Existing direct IP and port access is deliberately retained as a rollback and tr
 | Navidrome | `navidrome.streamforge.internal` | `navidrome:4533` |
 | Sonarr | `sonarr.streamforge.internal` | `sonarr:8989` |
 | Radarr | `radarr.streamforge.internal` | `radarr:7878` |
+| Bazarr | `bazarr.streamforge.internal` | `bazarr:6767` |
 | Prowlarr | `prowlarr.streamforge.internal` | `prowlarr:9696` |
 | NZBGet | `nzbget.streamforge.internal` | `nzbget:6789` |
 | Jellyfin | `jellyfin.streamforge.internal` | `jellyfin:8096` |
